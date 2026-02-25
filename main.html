@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">hey
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bouncyy Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        canvas {
+            border: 2px solid #fff;
+            background: #111;
+        }
+
+        .score {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-family: Arial;
+            font-size: 24px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="score">Score: <span id="score">0</span></div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+
+        let score = 0;
+        let ballX = 400, ballY = 300, ballDX = 4, ballDY = -4;
+        const ballRadius = 10;
+        let paddleHeight = 100, paddleWidth = 10;
+        let paddleY = (canvas.height - paddleHeight) / 2;
+        let upPressed = false, downPressed = false;
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowUp') upPressed = true;
+            else if (e.key === 'ArrowDown') downPressed = true;
+        });
+
+        document.addEventListener('keyup', e => {
+            if (e.key === 'ArrowUp') upPressed = false;
+            else if (e.key === 'ArrowDown') downPressed = false;
+        });
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawPaddle() {
+            ctx.beginPath();
+            ctx.rect(0, paddleY, paddleWidth, paddleHeight);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBall();
+            drawPaddle();
+
+            if (ballX + ballDX > canvas.width - ballRadius || ballX + ballDX < ballRadius) {
+                if (ballX + ballDX < ballRadius && ballY > paddleY && ballY < paddleY + paddleHeight) {
+                    ballDX = -ballDX;
+                    score++;
+                    scoreElement.textContent = score;
+                } else if (ballX + ballDX < ballRadius) {
+                    ballX = 400;
+                    ballY = 300;
+                    score = 0;
+                    scoreElement.textContent = score;
+                } else {
+                    ballDX = -ballDX;
+                }
+            }
+
+            if (ballY + ballDY > canvas.height - ballRadius || ballY + ballDY < ballRadius) {
+                ballDY = -ballDY;
+            }
+
+            ballX += ballDX;
+            ballY += ballDY;
+
+            if (upPressed && paddleY > 0) paddleY -= 7;
+            if (downPressed && paddleY < canvas.height - paddleHeight) paddleY += 7;
+
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+
+</html>
