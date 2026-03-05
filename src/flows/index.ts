@@ -9,6 +9,9 @@
  */
 
 import { codeScanFlow } from "./codeScanFlow.js";
+import { semgrepScanFlow } from "./semgrepScanFlow.js";
+import { gitleaksScanFlow } from "./gitleaksScanFlow.js";
+import { trivyScanFlow } from "./trivyScanFlow.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -37,6 +40,9 @@ type FlowExecutor = (ctx: FlowContext) => Promise<FlowResult>;
 
 const FLOW_REGISTRY: Record<string, FlowExecutor> = {
   "code-scan": codeScanFlow,
+  "sast-scan": semgrepScanFlow,
+  "secret-scan": gitleaksScanFlow,
+  "sca-scan": trivyScanFlow,
 };
 
 /** All registered flow names — exposed for tool descriptions. */

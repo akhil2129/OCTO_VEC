@@ -27,6 +27,7 @@ import { getDateTool } from "../tools/shared/dateTools.js";
 import { publishAgentStream } from "../atp/agentStreamBus.js";
 import { startPromptDebugMonitor } from "../atp/llmDebug.js";
 import { applyToolConfig } from "../atp/agentToolConfig.js";
+import { securityFlowTools } from "../tools/domain/securityFlowTools.js";
 
 const AGENT_ID = "security";
 
@@ -103,9 +104,14 @@ RULES:
 YOUR AVAILABLE TOOLS:
 - File READ tools: read, grep, find, ls — you can read any file in the workspace
 - File WRITE tools: write, edit — RESTRICTED to .md and .mmd files only
+- SAST SCAN: run_sast_scan — triggers Semgrep SAST scan via Docker. Detects OWASP Top 10, injection, insecure crypto, hardcoded secrets. Produces a report in shared/reports/.
+- SECRET SCAN: run_secret_scan — triggers Gitleaks secret scan via Docker. Detects leaked API keys, tokens, passwords, private keys. Any finding = FAIL. Produces a report in shared/reports/.
+- SCA SCAN: run_sca_scan — triggers Trivy dependency scan via Docker. Detects known CVEs in dependencies (package-lock.json, yarn.lock, etc.). Shows affected packages, versions, and available fixes.
+- OCTO-FLOWS: run_flow — trigger any named OCTO-FLOW pipeline (sast-scan, secret-scan, sca-scan, code-scan, etc.)
 - You do NOT have bash. Do not attempt to run shell commands — the tool does not exist for you.
-- Use grep and find to scan for security patterns instead of bash grep/find.
+- Use grep and find to scan for security patterns manually. Use the scan tools for automated scanning.
 - If another agent suggests using bash, tell them you don't have that tool.
+- WHEN TO USE SCANS: For a full security audit, run ALL THREE: run_sast_scan (code vulnerabilities), run_secret_scan (leaked credentials), run_sca_scan (dependency CVEs). This gives comprehensive coverage.
 
 FILE EDITING RULES:
 - To edit a file, ALWAYS call read first to see the current content.
@@ -184,6 +190,7 @@ export class SecurityAgent implements VECAgent {
       ...sandboxFileTools(AGENT_ID, [...getReadOnlyTools(), ...getScopedWriteTools()]),
       ...getMessagingTools(AGENT_ID, this.inbox).filter((t) => t.name !== "broadcast_message"),
       getDateTool(),
+      ...securityFlowTools,
     ];
 
     this.agent = new Agent({

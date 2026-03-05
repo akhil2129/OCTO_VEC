@@ -218,6 +218,10 @@ export const AGENT_PROFILES: AgentProfile[] = [
       ...MEMORY_TOOLS,
       ...AGENT_MESSAGING_TOOLS,
       DATE_TOOL,
+      { id: "run_sast_scan", name: "Run SAST Scan", description: "Trigger Semgrep SAST scan via OCTO-FLOWS", group: "OCTO-Flows" },
+      { id: "run_secret_scan", name: "Run Secret Scan", description: "Trigger Gitleaks secret scan via OCTO-FLOWS", group: "OCTO-Flows" },
+      { id: "run_sca_scan", name: "Run SCA Scan", description: "Trigger Trivy dependency vulnerability scan via OCTO-FLOWS", group: "OCTO-Flows" },
+      { id: "run_flow", name: "Run OCTO-Flow", description: "Trigger any named OCTO-FLOW pipeline", group: "OCTO-Flows" },
     ],
   },
   {
