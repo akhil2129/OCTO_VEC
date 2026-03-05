@@ -27,6 +27,10 @@ nul
 .claude/
 .pi/
 
+# User-specific profile files
+ITS_ME.md
+self.md
+
 # SQLite WAL files (if any slip through)
 *.db-shm
 *.db-wal
