@@ -18,7 +18,7 @@ function loadCreds(): Record<string, any> {
   if (!existsSync(CREDS_PATH)) {
     throw new Error(
       `Codex OAuth credentials not found at ${CREDS_PATH}.\n` +
-      `Run: npx tsx scripts/codex-login.ts`
+      `See docs/config.md for Codex OAuth setup instructions.`
     );
   }
   return JSON.parse(readFileSync(CREDS_PATH, "utf8"));
