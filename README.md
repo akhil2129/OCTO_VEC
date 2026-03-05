@@ -4,14 +4,29 @@
 
 ### Your AI Team, Not Just Another AI Tool
 
-**Specialized AI agents that collaborate like real employees.**
+**A virtual software company — 9 autonomous AI agents that collaborate like real employees.**
 You talk to the PM. They handle the rest. No meetings. Just tentacles.
 
-[![Open Sourcing Soon](https://img.shields.io/badge/status-open%20sourcing%20soon-e63230?style=for-the-badge)](https://discord.gg/spdRmufS)
+[![Open Source](https://img.shields.io/badge/status-open%20source-3fb950?style=for-the-badge)](https://github.com/akhil2129/vec-atp)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
 [Landing Page](https://octovec.ai) · [Discord](https://discord.gg/spdRmufS) · [Twitter](https://x.com/OctoVec_ai) · [LinkedIn](https://www.linkedin.com/in/octo-vec-9883073b4/)
+
+<br/>
+
+<a href="https://www.youtube.com/watch?v=6UJH4bcs-hM">
+  <img src="https://img.youtube.com/vi/6UJH4bcs-hM/maxresdefault.jpg" alt="OCTO VEC Demo" width="700"/>
+</a>
+
+**[Watch the Demo](https://www.youtube.com/watch?v=6UJH4bcs-hM)**
+
+<br/>
+
+<img src="landing/neural-network.gif" alt="OCTO VEC Neural Agent Network" width="500"/>
+
+*9 AI agents communicating in real-time — PM at center, specialists in orbit*
 
 </div>
 
@@ -19,9 +34,9 @@ You talk to the PM. They handle the rest. No meetings. Just tentacles.
 
 ## What is OCTO VEC?
 
-OCTO VEC is a **multi-agent AI system** where autonomous agents simulate a real software company. Give a task to the Project Manager — it breaks it down, delegates to specialists, and they collaborate to deliver results.
+OCTO VEC is an **open-source virtual software company** — 9 autonomous AI agents that simulate a real dev team. Give a task to the Project Manager and it breaks it down, delegates to specialists, and they collaborate to deliver tested, scanned, documented code.
 
-No chains. No graphs. No 500-line YAML configs. Just agents that talk to each other like real coworkers.
+Not a coding assistant. Not a copilot. A **full team** — with a PM, Developer, BA, QA, Security Engineer, DevOps, Architect, Researcher, and Tech Writer.
 
 ```
 you → Build a REST API with auth and write tests
@@ -34,6 +49,7 @@ you → Build a REST API with auth and write tests
 [BA] Requirements written → shared/requirements.md
 [Dev] Building API... reading BA specs... writing code...
 [Dev] ✓ All tests passing (12/12)
+[Security] Running SAST scan... 0 critical findings ✓
 [QA] ✓ Integration tests passing. No issues found.
 
 ✓ All tasks completed. Your coffee is getting cold.
@@ -63,10 +79,29 @@ you → Build a REST API with auth and write tests
 - **Agent-to-Agent Messaging** — Agents message each other when they need something
 - **Persistent Memory** — Short-term, long-term, and session memory across tasks and sessions
 - **Live Dashboard** — Kanban board, activity feed, real-time streaming of agent thoughts
+- **OCTO-FLOWS Security Scanning** — Automated SAST (Semgrep), secret detection (Gitleaks), and SCA (Trivy) via Docker
 - **Agent Sandbox** — Each agent has private workspace. Shared workspace for cross-team deliverables
 - **Any LLM Provider** — Works with Groq, OpenAI, Anthropic, and more. Swap with one env variable
 - **Sunset/Sunrise Lifecycle** — PM journals to long-term memory at end of day, starts fresh each morning
 - **Auto-Compaction** — Agent context automatically compresses when it gets too long
+
+---
+
+## Why OCTO VEC?
+
+Most AI coding tools give you **one agent that writes code**. OCTO VEC gives you **a whole company**.
+
+| Feature | Copilot / Cursor | Devin / OpenHands | MetaGPT / ChatDev | **OCTO VEC** |
+|---------|:-:|:-:|:-:|:-:|
+| Writes code | Yes | Yes | Yes | Yes |
+| Multi-agent collaboration | No | No | Yes | Yes |
+| Persistent memory (STM/LTM/SLTM) | No | No | No | **Yes** |
+| Real security scanning (SAST/SCA/Secrets) | No | No | No | **Yes** |
+| Daily lifecycle (Sunset/Sunrise) | No | No | No | **Yes** |
+| Auto-compaction for long tasks | No | No | No | **Yes** |
+| Self-hosted, vendor-agnostic | No | Partial | Yes | **Yes** |
+| Full team simulation (PM, BA, QA, Security...) | No | No | Partial | **Yes (9 agents)** |
+| Audit trail (task DB + event log) | No | No | No | **Yes** |
 
 ---
 
