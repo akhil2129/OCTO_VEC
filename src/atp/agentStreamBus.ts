@@ -108,18 +108,24 @@ export function publishAgentStream(agentId: string, event: AgentEvent): void {
       break;
     }
 
-    case "tool_execution_start":
+    case "tool_execution_start": {
+      const toolArgs = (event as any).args && typeof (event as any).args === "object"
+        ? ((event as any).args as Record<string, unknown>)
+        : undefined;
+      // Count tool argument chars as output (models often produce output via tool calls)
+      if (toolArgs) {
+        const argsStr = JSON.stringify(toolArgs);
+        trackOutputChars(agentId, argsStr.length);
+      }
       emit({
         agentId,
         type: "tool_start",
         content: (event as any).toolName ?? "",
         toolName: (event as any).toolName,
-        toolArgs:
-          (event as any).args && typeof (event as any).args === "object"
-            ? ((event as any).args as Record<string, unknown>)
-            : undefined,
+        toolArgs,
       });
       break;
+    }
 
     case "tool_execution_end": {
       const e = event as any;
