@@ -91,6 +91,25 @@ function StatusBadge({ runtime }: { runtime?: AgentRuntimeEntry }) {
   return null; // Running is the default — shown via green dot
 }
 
+/* ── Department colors for hire modal ── */
+
+const DEPT_COLORS: Record<string, string> = {
+  Engineering: "var(--blue)",
+  Management: "var(--purple)",
+  "Quality Assurance": "var(--yellow)",
+  Security: "var(--red)",
+  Operations: "var(--orange)",
+  Research: "var(--green)",
+  Documentation: "var(--purple)",
+  Design: "var(--purple)",
+  Data: "var(--green)",
+  Support: "var(--yellow)",
+};
+
+function getDeptColor(dept: string): string {
+  return DEPT_COLORS[dept] ?? "var(--accent)";
+}
+
 /* ── Hire Agent modal ── */
 
 function HireModal({
@@ -108,6 +127,19 @@ function HireModal({
   const [error, setError] = useState("");
 
   const hireableTemplates = templates.filter((t) => !t.mandatory);
+
+  // Group by department
+  const departments = useMemo(() => {
+    const map = new Map<string, RoleTemplateSummary[]>();
+    for (const t of hireableTemplates) {
+      const arr = map.get(t.department) ?? [];
+      arr.push(t);
+      map.set(t.department, arr);
+    }
+    return [...map.entries()];
+  }, [hireableTemplates]);
+
+  const selectedInfo = hireableTemplates.find((t) => t.id === selectedTemplate);
 
   async function submit() {
     if (!selectedTemplate || !name.trim()) return;
@@ -130,124 +162,215 @@ function HireModal({
         onClick={onClose}
         style={{
           position: "fixed", inset: 0, zIndex: 100,
-          background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)",
+          background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
         }}
       />
       {/* Modal */}
       <div style={{
         position: "fixed", top: "50%", left: "50%",
         transform: "translate(-50%, -50%)", zIndex: 101,
-        background: "var(--bg-card)", border: "1px solid var(--border)",
-        borderRadius: 12, padding: "24px 28px", width: 400, maxWidth: "90vw",
-        boxShadow: "var(--shadow-lg)",
+        background: "var(--bg-secondary)", border: "1px solid var(--border)",
+        borderRadius: 16, padding: 0, width: 720, maxWidth: "92vw",
+        maxHeight: "85vh", display: "flex", flexDirection: "column",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px var(--border)",
+        overflow: "hidden",
       }}>
+        {/* Header */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          marginBottom: 20,
+          padding: "18px 24px 14px",
+          borderBottom: "1px solid var(--border)", flexShrink: 0,
         }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>
-            Hire New Agent
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10,
+              background: "var(--accent-subtle)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <UserPlus size={16} style={{ color: "var(--accent)" }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>
+                Hire New Agent
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>
+                Select a department and role
+              </div>
+            </div>
           </div>
           <button onClick={onClose} style={{
             display: "flex", alignItems: "center", justifyContent: "center",
-            width: 28, height: 28, border: "none", borderRadius: 6,
+            width: 28, height: 28, border: "1px solid var(--border)", borderRadius: 8,
             background: "var(--bg-tertiary)", color: "var(--text-muted)",
-            cursor: "pointer", padding: 0,
-          }}>
+            cursor: "pointer", padding: 0, transition: "all 0.12s",
+          }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--bg-tertiary)"; e.currentTarget.style.color = "var(--text-muted)"; }}
+          >
             <X size={14} />
           </button>
         </div>
 
-        {/* Role template selector */}
-        <div style={{ marginBottom: 14 }}>
-          <label style={{
-            fontSize: 11, fontWeight: 600, color: "var(--text-secondary)",
-            display: "block", marginBottom: 6, textTransform: "uppercase",
-            letterSpacing: "0.05em",
-          }}>
-            Role
-          </label>
-          <div style={{
-            display: "grid", gridTemplateColumns: "1fr 1fr",
-            gap: 6,
-          }}>
-            {hireableTemplates.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setSelectedTemplate(t.id)}
-                style={{
-                  fontSize: 12, padding: "8px 12px", borderRadius: 8, cursor: "pointer",
-                  border: "1px solid",
-                  fontFamily: "inherit", fontWeight: 500, textAlign: "left",
-                  borderColor: selectedTemplate === t.id ? "var(--accent)" : "var(--border)",
-                  background: selectedTemplate === t.id ? "var(--blue-bg, rgba(17,88,199,0.1))" : "var(--bg-tertiary)",
-                  color: selectedTemplate === t.id ? "var(--accent)" : "var(--text-secondary)",
-                  transition: "all 0.08s",
-                }}
-              >
-                <div>{t.role}</div>
-                <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
-                  {t.department}
+        {/* Scrollable body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px 20px" }}>
+          {/* Departments + roles */}
+          {departments.map(([dept, roles]) => {
+            const deptColor = getDeptColor(dept);
+            return (
+              <div key={dept} style={{ marginBottom: 16 }}>
+                {/* Department header */}
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  marginBottom: 8, padding: "0 2px",
+                }}>
+                  <Building2 size={12} style={{ color: deptColor, opacity: 0.7 }} />
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, color: "var(--text-muted)",
+                    textTransform: "uppercase", letterSpacing: "0.06em",
+                  }}>
+                    {dept}
+                  </span>
+                  <span style={{
+                    fontSize: 10, color: "var(--text-muted)", opacity: 0.5,
+                  }}>
+                    {roles.length} {roles.length === 1 ? "role" : "roles"}
+                  </span>
+                  <div style={{
+                    flex: 1, height: 1, background: "var(--border)", marginLeft: 4,
+                  }} />
                 </div>
-              </button>
-            ))}
-          </div>
+
+                {/* Role cards grid */}
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+                  gap: 6,
+                }}>
+                  {roles.map((t) => {
+                    const sel = selectedTemplate === t.id;
+                    const roleColor = ROLE_COLORS[t.role] ?? deptColor;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setSelectedTemplate(t.id)}
+                        style={{
+                          fontSize: 12, padding: "10px 12px", borderRadius: 10,
+                          cursor: "pointer", border: "1px solid",
+                          fontFamily: "inherit", fontWeight: 500, textAlign: "left",
+                          borderColor: sel ? "var(--accent)" : "var(--border)",
+                          background: sel ? "var(--accent-subtle)" : "var(--bg-card)",
+                          color: sel ? "var(--accent)" : "var(--text-secondary)",
+                          transition: "all 0.12s",
+                        }}
+                        onMouseEnter={(e) => { if (!sel) e.currentTarget.style.borderColor = "var(--text-muted)"; }}
+                        onMouseLeave={(e) => { if (!sel) e.currentTarget.style.borderColor = sel ? "var(--accent)" : "var(--border)"; }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                          <span style={{
+                            width: 7, height: 7, borderRadius: "50%",
+                            background: sel ? "var(--accent)" : roleColor,
+                            flexShrink: 0, opacity: sel ? 1 : 0.7,
+                          }} />
+                          <span style={{ lineHeight: 1.3 }}>{t.role}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
+          {hireableTemplates.length === 0 && (
+            <div style={{
+              padding: 24, textAlign: "center",
+              color: "var(--text-muted)", fontSize: 13,
+            }}>
+              No additional roles available to hire.
+            </div>
+          )}
         </div>
 
-        {/* Name input */}
-        <div style={{ marginBottom: 18 }}>
-          <label style={{
-            fontSize: 11, fontWeight: 600, color: "var(--text-secondary)",
-            display: "block", marginBottom: 6, textTransform: "uppercase",
-            letterSpacing: "0.05em",
-          }}>
-            Name
-          </label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder="e.g. Priya Sharma"
-            style={{
-              width: "100%", fontSize: 13, padding: "8px 12px", borderRadius: 8,
-              border: "1px solid var(--border)", background: "var(--bg-tertiary)",
-              color: "var(--text-primary)", fontFamily: "inherit",
-              outline: "none", boxSizing: "border-box",
-            }}
-          />
-        </div>
+        {/* Footer — name + actions (sticky at bottom) */}
+        <div style={{
+          padding: "14px 24px 18px",
+          borderTop: "1px solid var(--border)", flexShrink: 0,
+          background: "var(--bg-secondary)",
+        }}>
+          {/* Selected role indicator */}
+          {selectedInfo && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8,
+              marginBottom: 12, fontSize: 12, color: "var(--text-secondary)",
+            }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: "50%",
+                background: ROLE_COLORS[selectedInfo.role] ?? "var(--accent)",
+              }} />
+              <span style={{ fontWeight: 500 }}>
+                {selectedInfo.role}
+              </span>
+              <span style={{ color: "var(--text-muted)" }}>
+                — {selectedInfo.department}
+              </span>
+            </div>
+          )}
 
-        {error && (
-          <div style={{
-            fontSize: 12, color: "var(--red)", marginBottom: 12,
-            padding: "6px 10px", background: "var(--red-bg, rgba(239,68,68,0.1))",
-            borderRadius: 6,
-          }}>
-            {error}
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submit()}
+              placeholder={selectedTemplate ? "Enter agent name..." : "Select a role first"}
+              disabled={!selectedTemplate}
+              style={{
+                flex: 1, fontSize: 13, padding: "10px 14px", borderRadius: 10,
+                border: "1px solid var(--border)", background: "var(--bg-card)",
+                color: "var(--text-primary)", fontFamily: "inherit",
+                outline: "none", boxSizing: "border-box",
+                transition: "border-color 0.12s",
+                opacity: selectedTemplate ? 1 : 0.5,
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+            />
+            <button onClick={onClose} style={{
+              fontSize: 12, padding: "10px 16px", borderRadius: 10,
+              border: "1px solid var(--border)", background: "transparent",
+              color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit",
+              fontWeight: 500, transition: "all 0.12s", flexShrink: 0,
+            }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={submit}
+              disabled={busy || !selectedTemplate || !name.trim()}
+              style={{
+                fontSize: 12, padding: "10px 22px", borderRadius: 10, border: "none",
+                background: "var(--accent)", color: "#fff", cursor: "pointer",
+                fontFamily: "inherit", fontWeight: 600, flexShrink: 0,
+                opacity: busy || !selectedTemplate || !name.trim() ? 0.4 : 1,
+                transition: "all 0.12s",
+                boxShadow: busy || !selectedTemplate || !name.trim() ? "none" : "0 2px 12px rgba(91,141,239,0.3)",
+              }}
+            >
+              {busy ? "Hiring..." : "Hire Agent"}
+            </button>
           </div>
-        )}
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{
-            fontSize: 12, padding: "8px 16px", borderRadius: 8,
-            border: "1px solid var(--border)", background: "transparent",
-            color: "var(--text-muted)", cursor: "pointer", fontFamily: "inherit",
-            fontWeight: 500,
-          }}>
-            Cancel
-          </button>
-          <button
-            onClick={submit}
-            disabled={busy || !selectedTemplate || !name.trim()}
-            style={{
-              fontSize: 12, padding: "8px 18px", borderRadius: 8, border: "none",
-              background: "var(--accent)", color: "#fff", cursor: "pointer",
-              fontFamily: "inherit", fontWeight: 600,
-              opacity: busy || !selectedTemplate || !name.trim() ? 0.5 : 1,
-            }}
-          >
-            {busy ? "Hiring..." : "Hire"}
-          </button>
+          {error && (
+            <div style={{
+              fontSize: 12, color: "var(--red)", marginTop: 10,
+              padding: "8px 12px", background: "var(--red-bg)",
+              borderRadius: 8, border: "1px solid rgba(232,100,90,0.15)",
+            }}>
+              {error}
+            </div>
+          )}
         </div>
       </div>
     </>

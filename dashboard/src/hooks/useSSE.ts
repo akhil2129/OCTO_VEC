@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { apiUrl } from "./useApi";
 
 // ── Activity entry — one event in the live feed ───────────────────────────────
 
@@ -162,7 +163,7 @@ function handleToken(data: string) {
 // ── Connect the singleton EventSource ─────────────────────────────────────────
 
 function connectSSE() {
-  const es = new EventSource("/api/stream");
+  const es = new EventSource(apiUrl("/api/stream"));
 
   es.onopen = () => {
     _connected = true;

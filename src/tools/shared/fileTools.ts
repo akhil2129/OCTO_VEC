@@ -81,15 +81,170 @@ function accessDenied(toolName: string, filePath: string) {
   };
 }
 
+// ── Bash workspace containment ────────────────────────────────────────────
+//
+// Strategy: agents can use ANY command, but every path in the command must
+// resolve inside the workspace (or the agent's own memory dir).
+//
+// 1. Extract all path-like tokens from the command string
+// 2. Resolve each relative to workspace CWD
+// 3. If ANY path escapes the allowed roots → block
+// 4. A small blocklist catches truly dangerous patterns that don't involve
+//    paths at all (sudo, shutdown, eval evasion, etc.)
+
+const WORKSPACE_RESOLVED = path.resolve(config.workspace);
+
+/** Patterns that are dangerous regardless of path — always blocked. */
+const BASH_ALWAYS_BLOCKED: { pattern: RegExp; reason: string }[] = [
+  // Privilege escalation
+  { pattern: /\bsudo\b/, reason: "sudo — privilege escalation" },
+  { pattern: /\bsu\s+-?\s*\w/, reason: "su — switch user" },
+
+  // System destruction
+  { pattern: /\bmkfs\b/, reason: "mkfs — filesystem format" },
+  { pattern: /\bdd\s+.*of=\/dev\//, reason: "dd — raw disk write" },
+  { pattern: /\bshutdown\b/, reason: "shutdown" },
+  { pattern: /\breboot\b/, reason: "reboot" },
+
+  // Shell evasion tricks
+  { pattern: /\bbase64\s+-d\b.*\|\s*(ba)?sh/, reason: "base64-decoded shell execution" },
+  { pattern: /\beval\s+"?\$\(/, reason: "eval with command substitution" },
+  { pattern: /\bcurl\b.*\|\s*(ba)?sh\b/, reason: "curl pipe to shell — remote code execution" },
+  { pattern: /\bwget\b.*\|\s*(ba)?sh\b/, reason: "wget pipe to shell — remote code execution" },
+
+  // Reverse shells / listeners
+  { pattern: /\bnc\s+-[a-zA-Z]*l/, reason: "netcat listener" },
+  { pattern: /\bncat\b/, reason: "ncat" },
+];
+
+/**
+ * Extract path-like tokens from a bash command string.
+ *
+ * Catches:
+ *   - Unix absolute paths:    /etc/passwd, /home/user/.ssh/id_rsa
+ *   - Windows absolute paths: C:\Users\..., D:/Projects/...
+ *   - Relative traversal:     ../../.env, ../../../etc/passwd
+ *   - cd targets:             cd /tmp, cd ../..
+ *   - Home expansion:         ~/secret  (resolves via HOME)
+ *
+ * Intentionally ignores:
+ *   - URLs (http://, https://, git://) — not filesystem paths
+ *   - Bare filenames without slashes (script.py, package.json) — relative to CWD = workspace
+ */
+function extractPathTokens(command: string): string[] {
+  const tokens: string[] = [];
+
+  // Strip URLs so http://... doesn't trigger absolute-path matching
+  const urlSafe = command.replace(/https?:\/\/\S+/g, " ").replace(/git:\/\/\S+/g, " ");
+
+  // 1. Unix absolute paths: /foo/bar (but not lone / in pipes like |)
+  const unixAbs = urlSafe.match(/(?:^|\s|=|"|')(\/([\w.\-]+\/)*[\w.\-*]+)/g);
+  if (unixAbs) {
+    for (const m of unixAbs) tokens.push(m.trim().replace(/^["'=]/, ""));
+  }
+
+  // 2. Windows absolute paths: C:\foo or C:/foo
+  const winAbs = urlSafe.match(/[A-Za-z]:[/\\][\w.\-/\\]*/g);
+  if (winAbs) tokens.push(...winAbs);
+
+  // 3. Relative paths with ../ traversal
+  const traversal = urlSafe.match(/(?:^|\s|=|"|')(\.\.([/\\][\w.\-]*)+)/g);
+  if (traversal) {
+    for (const m of traversal) tokens.push(m.trim().replace(/^["'=]/, ""));
+  }
+
+  // 4. Home-relative paths: ~/something
+  const homeRel = urlSafe.match(/(?:^|\s|=|"|')(~\/[\w.\-/\\]*)/g);
+  if (homeRel) {
+    for (const m of homeRel) {
+      const clean = m.trim().replace(/^["'=]/, "");
+      const home = process.env.HOME ?? process.env.USERPROFILE ?? "/";
+      tokens.push(clean.replace(/^~/, home));
+    }
+  }
+
+  return tokens;
+}
+
+/**
+ * Check if a resolved path is within the allowed roots for bash.
+ * Allowed: workspace (+ all subdirs), agent's own memory dir.
+ */
+function isBashPathAllowed(resolved: string, allowedRoots: string[]): boolean {
+  const norm = resolved.replace(/\\/g, "/").toLowerCase();
+  for (const root of allowedRoots) {
+    const normRoot = root.replace(/\\/g, "/").toLowerCase();
+    if (norm === normRoot || norm.startsWith(normRoot + "/")) return true;
+  }
+  return false;
+}
+
+function bashBlocked(command: string, reason: string) {
+  return {
+    content: [{
+      type: "text" as const,
+      text:
+        `SECURITY BLOCK: bash command rejected.\n` +
+        `Reason: ${reason}\n` +
+        `Command: ${command.substring(0, 120)}${command.length > 120 ? "..." : ""}\n` +
+        `All bash commands are restricted to your workspace. Use relative paths within the project.`,
+    }],
+    details: {},
+  };
+}
+
+/**
+ * Wrap the bash tool with workspace containment.
+ * - Blocks always-dangerous patterns (sudo, mkfs, eval evasion, etc.)
+ * - Extracts all path tokens from the command
+ * - Blocks if any path resolves outside workspace or agent's memory dir
+ * - Allows all commands whose paths stay inside the workspace
+ */
+function wrapBashTool(tool: AgentTool, agentId: string): AgentTool {
+  // Pre-compute the allowed root directories for this agent
+  const ownMemory = path.resolve(MEMORY_DIR, agentId);
+  const allowedRoots = [WORKSPACE_RESOLVED, ownMemory];
+
+  return {
+    ...tool,
+    execute: async (ctx: any, params: any) => {
+      const command: string = params?.command ?? params?.cmd ?? "";
+      const cmd = command.trim();
+
+      if (!cmd) return bashBlocked(cmd, "empty command");
+
+      // 1. Always-blocked patterns (no path analysis needed)
+      for (const { pattern, reason } of BASH_ALWAYS_BLOCKED) {
+        if (pattern.test(cmd)) {
+          return bashBlocked(cmd, reason);
+        }
+      }
+
+      // 2. Extract all path references from the command
+      const paths = extractPathTokens(cmd);
+
+      // 3. Resolve each path and check containment
+      for (const p of paths) {
+        const resolved = path.resolve(WORKSPACE_RESOLVED, p);
+        if (!isBashPathAllowed(resolved, allowedRoots)) {
+          return bashBlocked(cmd, `path "${p}" resolves outside workspace (${resolved})`);
+        }
+      }
+
+      return tool.execute(ctx, params);
+    },
+  };
+}
+
 /**
  * Wrap file tools with per-agent path sandboxing.
- * Blocks access to other agents' private workspace/memory folders.
- * Bash tool is passed through (too complex to sandbox reliably).
+ * - File tools (read, write, edit, etc.): path param checked against isPathAllowed
+ * - Bash tool: workspace containment — all referenced paths must stay inside workspace
  */
 export function sandboxFileTools(agentId: string, tools: AgentTool[]): AgentTool[] {
   return tools.map((tool) => {
-    // Bash is hard to sandbox via path checks — skip it
-    if (tool.name === "bash") return tool;
+    // Bash: workspace containment wrapper
+    if (tool.name === "bash") return wrapBashTool(tool, agentId);
 
     return {
       ...tool,

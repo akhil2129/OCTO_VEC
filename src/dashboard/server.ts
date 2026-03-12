@@ -15,6 +15,9 @@
  */
 
 import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -38,6 +41,16 @@ import { AgentRuntime } from "../atp/agentRuntime.js";
 import { getMCPTools } from "../mcp/mcpBridge.js";
 import { ActiveChannelState } from "../channels/activeChannel.js";
 import type { VECAgent } from "../atp/inboxLoop.js";
+import { getAllUsage as getFinanceAllUsage, getTotals as getFinanceTotals, resetUsage as resetFinanceUsage } from "../atp/tokenTracker.js";
+import {
+  apiKeyAuth,
+  getDashboardApiKey,
+  getDashboardHost,
+  getCorsOptions,
+  getHelmetOptions,
+  getMutationRateLimitOptions,
+  validateMCPConfig,
+} from "./security.js";
 
 // â"€â"€ Error classification (server-side) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
@@ -2468,6 +2481,13 @@ function getDashboardHtml(): string {
 export function startDashboardServer(runtime: AgentRuntime, port = config.dashboardPort): void {
   const agents = runtime.allAgents; // backward compat — same Map reference
   const app = express();
+
+  // ── Security middleware ──────────────────────────────────────────────────
+  app.use(helmet(getHelmetOptions()));
+  app.use(cors(getCorsOptions()));
+  app.use(apiKeyAuth);
+  // Rate-limit mutation endpoints (POST/DELETE) — 60 req/min
+  app.use("/api/", rateLimit(getMutationRateLimitOptions()));
   app.use(express.json());
 
   app.get("/api/tasks", (_req, res) => {
@@ -2643,14 +2663,16 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
   app.post("/api/mcp-config", (req, res) => {
     try {
       const body = req.body;
-      if (!body || typeof body !== "object" || !body.mcpServers) {
-        res.status(400).json({ error: "bad format" });
+      // Validate MCP config — prevent RCE via arbitrary command spawning
+      const validation = validateMCPConfig(body);
+      if (!validation.valid) {
+        res.status(400).json({ error: validation.error });
         return;
       }
       writeFileSync(mcpCfgPath, JSON.stringify(body, null, 2), "utf-8");
       res.json({ ok: true });
     } catch (err: any) {
-      res.status(500).json({ error: String(err?.message ?? "save failed") });
+      res.status(500).json({ error: "Failed to save MCP config" });
     }
   });
 
@@ -2762,6 +2784,61 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
     }
   });
 
+  // ── Settings: system config & integration status ─────────────────────────
+  app.get("/api/settings", (_req, res) => {
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN ?? "";
+    const tgChatId = process.env.TELEGRAM_CHAT_ID ?? "";
+    res.json({
+      system: {
+        companyName: config.companyName,
+        workspace: config.workspace,
+        dashboardPort: config.dashboardPort,
+        cliEnabled: config.cliEnabled,
+        debounceMs: config.debounceMs,
+        contextWindow: config.contextWindow,
+        compactThreshold: config.compactThreshold,
+      },
+      llm: {
+        provider: config.modelProvider,
+        model: config.model,
+        thinkingLevel: config.thinkingLevel,
+        temperature: config.temperature,
+        maxTokens: config.maxTokens,
+      },
+      proactive: {
+        enabled: config.pmProactiveEnabled,
+        intervalSecs: config.pmProactiveIntervalSecs,
+      },
+      integrations: {
+        telegram: {
+          configured: !!(tgToken && tgChatId),
+          chatId: tgChatId ? `${tgChatId.slice(0, 4)}...` : "",
+        },
+        searxng: {
+          configured: !!config.searxngUrl,
+          url: config.searxngUrl,
+        },
+        sonarqube: {
+          configured: !!config.sonarToken,
+          hostUrl: config.sonarHostUrl,
+          projectKey: config.sonarProjectBaseKey,
+        },
+        gitleaks: { configured: true },
+        semgrep: { configured: true },
+        trivy: { configured: true },
+      },
+    });
+  });
+
+  // ── Finance: token usage & cost tracking ────────────────────────────────
+  app.get("/api/finance", (_req, res) => {
+    res.json({ totals: getFinanceTotals(), agents: getFinanceAllUsage() });
+  });
+  app.post("/api/finance/reset", (_req, res) => {
+    resetFinanceUsage();
+    res.json({ ok: true });
+  });
+
   // â"€â"€ SSE: real-time agent streaming â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   app.get("/api/stream", (req, res) => {
     res.setHeader("Content-Type", "text/event-stream");
@@ -2813,8 +2890,11 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
     });
   }
 
-  const server = app.listen(port, () => {
-    // Intentionally silent — main.ts prints the URL in the banner
+  // ── Bind to localhost only (secure default) ───────────────────────────
+  const host = getDashboardHost();
+  const server = app.listen(port, host, () => {
+    const apiKey = getDashboardApiKey();
+    console.log(`  Dashboard: http://${host}:${port}?key=${apiKey}`);
   });
 
   server.on("error", (err: NodeJS.ErrnoException) => {

@@ -37,3 +37,6 @@ self.md
 
 # Internal TO-DOs — personal tracking, not source
 TO-DOs/
+
+# Tests — local smoke tests, not CI
+tests/

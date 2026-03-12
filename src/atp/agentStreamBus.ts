@@ -12,6 +12,7 @@
 
 import { EventEmitter } from "events";
 import type { AgentEvent } from "@mariozechner/pi-agent-core";
+import { trackTurnStart, trackOutputChars, trackTurnEnd } from "./tokenTracker.js";
 
 // ── Token shape ───────────────────────────────────────────────────────────────
 
@@ -83,6 +84,7 @@ export function publishAgentStream(agentId: string, event: AgentEvent): void {
 
   switch (event.type) {
     case "agent_start":
+      trackTurnStart(agentId);
       emit({ agentId, type: "agent_start", content: "" });
       break;
 
@@ -90,12 +92,14 @@ export function publishAgentStream(agentId: string, event: AgentEvent): void {
       const ae = (event as any).assistantMessageEvent;
       if (!ae) break;
       if (ae.type === "text_delta" && ae.delta) {
+        trackOutputChars(agentId, ae.delta.length);
         emit({ agentId, type: "text", content: ae.delta });
       }
       if (ae.type === "thinking_start") {
         emit({ agentId, type: "thinking_start", content: "" });
       }
       if (ae.type === "thinking_delta" && ae.delta) {
+        trackOutputChars(agentId, ae.delta.length);
         emit({ agentId, type: "thinking", content: ae.delta });
       }
       if (ae.type === "thinking_end") {
@@ -140,6 +144,7 @@ export function publishAgentStream(agentId: string, event: AgentEvent): void {
     }
 
     case "agent_end":
+      trackTurnEnd(agentId);
       emit({ agentId, type: "agent_end", content: "" });
       break;
 

@@ -11,6 +11,7 @@ import {
   PanelLeftOpen,
   Monitor,
   Settings,
+  IndianRupee,
 } from "lucide-react";
 import ThemeSwitcher from "./ThemeSwitcher";
 
@@ -22,6 +23,7 @@ export type View =
   | "directory"
   | "chat"
   | "live"
+  | "finance"
   | "settings";
 
 interface NavItem { id: View; label: string; icon: React.ReactNode }
@@ -35,6 +37,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "snoop",     label: "Snoop",     icon: <Eye size={ICON} /> },
   { id: "directory", label: "Directory", icon: <Users size={ICON} /> },
   { id: "chat",      label: "Chat",      icon: <MessageSquare size={ICON} /> },
+  { id: "finance",   label: "Finance",   icon: <IndianRupee size={ICON} /> },
   { id: "settings",  label: "Settings",  icon: <Settings size={ICON} /> },
 ];
 
@@ -97,7 +100,7 @@ export default function Sidebar({ activeView, setActiveView }: Props) {
             marginRight: collapsed ? -28 : 10,
             transition: `opacity ${TR}, margin-right ${TR}`,
           }}>
-            P
+            O
           </div>
 
           {/* Brand text */}
@@ -108,7 +111,7 @@ export default function Sidebar({ activeView, setActiveView }: Props) {
             overflow: "hidden", whiteSpace: "nowrap",
             transition: `opacity ${TR}`,
           }}>
-            Pi-Agent
+            OCTO-VEC
           </span>
 
           {/* Toggle — both icons overlaid, crossfade */}

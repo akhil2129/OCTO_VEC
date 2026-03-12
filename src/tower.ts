@@ -44,21 +44,20 @@ function ensureDirs(): void {
 function printBanner(): void {
   console.log("");
   console.log("╔══════════════════════════════════════════════════╗");
-  console.log("║       VEC — Virtual Employed Company              ║");
-  console.log("║       TOWER  |  Agent Task Portal                 ║");
+  console.log("║       VEC — Virtual Employed Company             ║");
+  console.log("║       TOWER  |  Agent Task Portal                ║");
   console.log("╚══════════════════════════════════════════════════╝");
   console.log(`  Model    : ${config.modelProvider}/${config.model}`);
   console.log(`  Thinking : ${config.thinkingLevel}`);
   console.log(
-    `  LLM Debug: ${
-      config.debugLlm ? `ON (stall>${config.debugLlmStallSecs}s)` : "OFF (set VEC_DEBUG_LLM=1)"
+    `  LLM Debug: ${config.debugLlm ? `ON (stall>${config.debugLlmStallSecs}s)` : "OFF (set VEC_DEBUG_LLM=1)"
     }`
   );
   console.log(`  Workspace: ${config.workspace}`);
   console.log(`    Shared : workspace/shared/         (cross-agent deliverables)`);
   console.log(`    Agents : workspace/agents/{EMP-ID}/ (per-agent private folders)`);
   console.log(`  Proactive: ${config.pmProactiveEnabled ? `ON (every ${config.pmProactiveIntervalSecs}s)` : "OFF"}`);
-  console.log(`  Dashboard: http://localhost:${config.dashboardPort}`);
+  // Dashboard URL with key is printed by server.ts on listen
   const tgChatId = process.env.TELEGRAM_CHAT_ID;
   console.log(`  Telegram : ${tgChatId ? `active (chat ${tgChatId})` : "disabled (set TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID to enable)"}`);
   console.log(`  CLI      : ${config.cliEnabled ? "ON" : "OFF (headless — set VEC_CLI_ENABLED=1 to enable)"}`);
@@ -179,8 +178,8 @@ function startLiveMonitor(): { toggle: () => boolean; interval: NodeJS.Timeout }
         msg.type === "error"
           ? "[ERR]"
           : msg.type === "status_update"
-          ? "[UPDATE]"
-          : "[INFO]";
+            ? "[UPDATE]"
+            : "[INFO]";
       const taskRef = msg.task_id ? ` ${msg.task_id}` : "";
       console.log(
         `\n  ${tag} ${msg.from_agent.toUpperCase()}${taskRef}: ${msg.message.substring(0, 120)}`
@@ -314,7 +313,7 @@ async function main(): Promise<void> {
     console.log("\nShutting down VEC... goodbye.");
     runtime.shutdown();
     for (const h of allHandles) clearInterval(h);
-    shutdownMCP().catch(() => {});
+    shutdownMCP().catch(() => { });
     process.exit(0);
   }
 
@@ -345,7 +344,7 @@ async function main(): Promise<void> {
       // - dashboard session → log to UserChatLog (not Telegram)
       // - cli session → log to UserChatLog (Telegram not notified for CLI messages)
       if (telegram && ch === "telegram") {
-        await telegram.sendToUser(line).catch(() => {});
+        await telegram.sendToUser(line).catch(() => { });
       }
       if (ch !== "telegram") {
         UserChatLog.log({ from: msg.from_agent, to: "user", message: msg.message, channel: "agent" });
@@ -655,7 +654,7 @@ async function main(): Promise<void> {
           (memory ? `${memory}\n\n` : "") +
           (firstTime
             ? `[FIRST INTERACTION — Sir is messaging you for the first time.]\n` +
-              `Introduce yourself briefly and warmly — one sentence. Then respond to what he said. Natural, not robotic.\n\n`
+            `Introduce yourself briefly and warmly — one sentence. Then respond to what he said. Natural, not robotic.\n\n`
             : "") +
           `[Message from ${founder.name} (Sir) — agent key: '${founder.agentKey}']\n` +
           `Sir says: ${input}`;
