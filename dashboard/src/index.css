@@ -351,20 +351,9 @@ input:focus, textarea:focus, select:focus {
   font-weight: 500;
 }
 
-/* ── Office Mode ─────────────────────────────────────────────────── */
+/* ── Isometric Office ────────────────────────────────────────────── */
 
-.office-floor {
-  background-color: var(--bg-primary);
-  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-@keyframes office-avatar-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(var(--color-rgb), 0.45); }
-  70%  { box-shadow: 0 0 0 7px rgba(var(--color-rgb), 0); }
-  100% { box-shadow: 0 0 0 0 rgba(var(--color-rgb), 0); }
-}
-
+/* Typing dots */
 @keyframes office-typing-bounce {
   0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
   30%           { transform: translateY(-3px); opacity: 1; }
@@ -378,24 +367,68 @@ input:focus, textarea:focus, select:focus {
 .office-typing-dot:nth-child(2) { animation-delay: 0.2s; }
 .office-typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
-@keyframes office-flow-dash {
-  from { stroke-dashoffset: 14; }
-  to   { stroke-dashoffset: 0; }
-}
-.office-flow-line {
-  animation: office-flow-dash 0.5s linear infinite;
-}
-
-@keyframes office-bubble-in {
+/* Speech bubble fade-in */
+@keyframes iso-bubble-in {
   from { opacity: 0; transform: translateX(-50%) translateY(4px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-@keyframes office-status-glow {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.4; }
+/* Walk cycle — body bob synced to stride (double-bounce per cycle) */
+@keyframes iso-walk-bob {
+  0%, 100% { transform: translateY(0); }
+  25%      { transform: translateY(-2px); }
+  50%      { transform: translateY(0); }
+  75%      { transform: translateY(-2px); }
 }
-.office-status-active {
-  background: var(--green);
-  animation: office-status-glow 2s ease-in-out infinite;
+.iso-walking {
+  animation: iso-walk-bob 0.5s ease-in-out infinite;
 }
+
+/* Leg swing — rotate from hip joint */
+@keyframes iso-leg-step-l {
+  0%   { transform: rotate(20deg); }
+  50%  { transform: rotate(-20deg); }
+  100% { transform: rotate(20deg); }
+}
+@keyframes iso-leg-step-r {
+  0%   { transform: rotate(-20deg); }
+  50%  { transform: rotate(20deg); }
+  100% { transform: rotate(-20deg); }
+}
+.iso-leg-l { animation: iso-leg-step-l 0.5s ease-in-out infinite; transform-origin: top center; }
+.iso-leg-r { animation: iso-leg-step-r 0.5s ease-in-out infinite; transform-origin: top center; }
+
+/* Arm swing — opposite phase to legs */
+@keyframes iso-arm-swing-l {
+  0%   { transform: rotate(-15deg); }
+  50%  { transform: rotate(15deg); }
+  100% { transform: rotate(-15deg); }
+}
+@keyframes iso-arm-swing-r {
+  0%   { transform: rotate(15deg); }
+  50%  { transform: rotate(-15deg); }
+  100% { transform: rotate(15deg); }
+}
+.iso-arm-l { animation: iso-arm-swing-l 0.5s ease-in-out infinite; transform-origin: top center; }
+.iso-arm-r { animation: iso-arm-swing-r 0.5s ease-in-out infinite; transform-origin: top center; }
+
+/* Monitor screen breathing glow */
+@keyframes iso-monitor-glow {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.7; }
+}
+.iso-monitor-active {
+  animation: iso-monitor-glow 3s ease-in-out infinite;
+}
+
+/* Coffee machine steam */
+@keyframes iso-steam-1 {
+  0%   { transform: translateY(0); opacity: 0.25; }
+  100% { transform: translateY(-12px); opacity: 0; }
+}
+@keyframes iso-steam-2 {
+  0%   { transform: translateY(0); opacity: 0.2; }
+  100% { transform: translateY(-10px); opacity: 0; }
+}
+.iso-steam   { animation: iso-steam-1 2s ease-out infinite; }
+.iso-steam-2 { animation: iso-steam-2 2.5s ease-out infinite 0.5s; }
