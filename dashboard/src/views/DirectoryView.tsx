@@ -7,13 +7,14 @@ import {
 import { usePolling, postApi, deleteApi } from "../hooks/useApi";
 import { useAgentStream } from "../hooks/useSSE";
 import { useEmployees } from "../context/EmployeesContext";
+import Dropdown from "../components/Dropdown";
 import type {
   Task, AgentProfile,
   AgentRuntimeEntry, RoleTemplateSummary,
 } from "../types";
 
 interface ModelSlot { provider: string; model: string; }
-interface ProviderInfo { id: string; name: string; configured: boolean; models: string[]; }
+interface ProviderInfo { id: string; name: string; configured: boolean; models: string[]; iconUrl: string; }
 interface ModelConfigData {
   providers: ProviderInfo[];
   config: { primary: ModelSlot; secondary: ModelSlot | null; fallback: ModelSlot | null; agentModels: Record<string, ModelSlot>; };
@@ -469,33 +470,20 @@ function AgentModelSelector({ agentId }: { agentId: string }) {
           padding: "10px 12px", borderRadius: 8,
           background: "var(--bg-tertiary)", border: "1px solid var(--border)",
         }}>
-          <select
+          <Dropdown
             value={selProvider}
-            onChange={(e) => { setSelProvider(e.target.value); setSelModel(""); }}
-            style={{
-              fontSize: 12, padding: "6px 10px", borderRadius: 6,
-              border: "1px solid var(--border)", background: "var(--bg-card)",
-              color: "var(--text-primary)", fontFamily: "inherit", outline: "none",
-            }}
-          >
-            {providers.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-          <select
+            onChange={(v) => { setSelProvider(v); setSelModel(""); }}
+            options={providers.map((p) => ({ value: p.id, label: p.name, iconUrl: p.iconUrl }))}
+            placeholder="Provider..."
+            alignRight={false}
+          />
+          <Dropdown
             value={selModel}
-            onChange={(e) => setSelModel(e.target.value)}
-            style={{
-              fontSize: 12, padding: "6px 10px", borderRadius: 6, flex: 1,
-              border: "1px solid var(--border)", background: "var(--bg-card)",
-              color: "var(--text-primary)", fontFamily: "monospace", outline: "none",
-            }}
-          >
-            <option value="">Select model...</option>
-            {models.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
+            onChange={setSelModel}
+            options={models.map((m) => ({ value: m, label: m }))}
+            placeholder={`Select model (${models.length})...`}
+            alignRight={false}
+          />
           <button
             onClick={handleSave}
             disabled={saving || !selModel}
@@ -542,13 +530,25 @@ function AgentModelSelector({ agentId }: { agentId: string }) {
           padding: "10px 12px", borderRadius: 8,
           background: "var(--bg-tertiary)", border: "1px solid var(--border)",
         }}>
-          <div style={{
-            width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-            background: "var(--green)",
-          }} />
+          {(() => {
+            const ep = providers.find((pp) => pp.id === effective?.provider);
+            return ep ? (
+              <img
+                src={ep.iconUrl}
+                alt={ep.name}
+                style={{ width: 20, height: 20, flexShrink: 0, borderRadius: 3, filter: "var(--icon-filter, none)" }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            ) : (
+              <div style={{
+                width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                background: "var(--green)",
+              }} />
+            );
+          })()}
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 12, fontWeight: 500, color: "var(--text-primary)" }}>
-              {effective?.provider ?? "—"}
+              {providers.find((pp) => pp.id === effective?.provider)?.name ?? effective?.provider ?? "—"}
             </div>
             <div style={{
               fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace",

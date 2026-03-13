@@ -42,7 +42,7 @@ import { getMCPTools } from "../mcp/mcpBridge.js";
 import { ActiveChannelState } from "../channels/activeChannel.js";
 import type { VECAgent } from "../atp/inboxLoop.js";
 import { getAllUsage as getFinanceAllUsage, getTotals as getFinanceTotals, resetUsage as resetFinanceUsage } from "../atp/tokenTracker.js";
-import { getProviders, getModelConfig, setModelConfig, setAgentModel, getEffectiveModel } from "../atp/modelConfig.js";
+import { getProviders, getModelConfig, setModelConfig, setAgentModel, getEffectiveModel, setProviderApiKey } from "../atp/modelConfig.js";
 import {
   apiKeyAuth,
   getDashboardApiKey,
@@ -2865,6 +2865,16 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
       setAgentModel(agent_id, null); // clear override
     }
     res.json({ ok: true, effective: getEffectiveModel(agent_id) });
+  });
+
+  app.post("/api/provider-key", (req, res) => {
+    const { provider, key } = req.body ?? {};
+    if (!provider || typeof provider !== "string") {
+      res.status(400).json({ error: "provider is required" });
+      return;
+    }
+    setProviderApiKey(provider, key ?? "");
+    res.json({ ok: true, providers: getProviders() });
   });
 
   // ── Finance: token usage & cost tracking ────────────────────────────────

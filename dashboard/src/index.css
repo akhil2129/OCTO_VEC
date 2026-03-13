@@ -32,6 +32,7 @@
   --shadow:        none;
   --shadow-lg:     0 8px 32px rgba(0,0,0,0.4);
   --input-bg:      #252525;
+  --icon-filter:   brightness(0) invert(1);
 }
 
 /* ── Theme: Light ────────────────────────────────────────────────────── */
@@ -64,6 +65,7 @@
   --shadow:        0 1px 2px rgba(0,0,0,0.04);
   --shadow-lg:     0 4px 16px rgba(0,0,0,0.08);
   --input-bg:      #ffffff;
+  --icon-filter:   none;
 }
 
 /* ── Theme: Midnight ─────────────────────────────────────────────────── */
@@ -96,6 +98,7 @@
   --shadow:        none;
   --shadow-lg:     0 8px 32px rgba(0,0,0,0.5);
   --input-bg:      #191c24;
+  --icon-filter:   brightness(0) invert(1);
 }
 
 /* ── Reset ───────────────────────────────────────────────────────────── */

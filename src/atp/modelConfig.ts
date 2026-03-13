@@ -14,6 +14,7 @@ import { MODELS } from "@mariozechner/pi-ai/dist/models.generated.js";
 import { getEnvApiKey } from "@mariozechner/pi-ai/dist/env-api-keys.js";
 
 const CONFIG_PATH = join(config.dataDir, "model-config.json");
+const KEYS_PATH = join(config.dataDir, "api-keys.json");
 
 // ── Provider display names ──────────────────────────────────────────────────
 
@@ -68,6 +69,33 @@ const ENV_KEY_HINTS: Record<string, string> = {
   zai: "ZAI_API_KEY",
 };
 
+// ── Provider icons (local assets from lobe-icons) ───────────────────────────
+
+const PROVIDER_ICONS: Record<string, string> = {
+  "amazon-bedrock": "bedrock",
+  anthropic: "anthropic",
+  "azure-openai-responses": "azure",
+  cerebras: "cerebras",
+  "github-copilot": "githubcopilot",
+  google: "gemini",
+  "google-antigravity": "antigravity",
+  "google-gemini-cli": "gemini",
+  "google-vertex": "googlecloud",
+  groq: "groq",
+  huggingface: "huggingface",
+  "kimi-coding": "kimi",
+  minimax: "minimax",
+  "minimax-cn": "minimax",
+  mistral: "mistral",
+  openai: "openai",
+  "openai-codex": "codex",
+  opencode: "openai",
+  openrouter: "openrouter",
+  "vercel-ai-gateway": "vercel",
+  xai: "xai",
+  zai: "chatglm",
+};
+
 // ── Provider detection ───────────────────────────────────────────────────────
 
 export interface ProviderInfo {
@@ -76,6 +104,7 @@ export interface ProviderInfo {
   configured: boolean;
   envKey: string;
   models: string[];
+  iconUrl: string;
 }
 
 /** Build the full provider list dynamically from pi-ai's model registry. */
@@ -85,12 +114,14 @@ export function getProviders(): ProviderInfo[] {
     const modelsMap = (MODELS as Record<string, Record<string, unknown>>)[id] ?? {};
     const modelIds = Object.keys(modelsMap);
     const configured = !!getEnvApiKey(id);
+    const slug = PROVIDER_ICONS[id] ?? id;
     return {
       id,
       name: PROVIDER_LABELS[id] ?? id,
       configured,
       envKey: ENV_KEY_HINTS[id] ?? "",
       models: modelIds,
+      iconUrl: `/icons/providers/${slug}.svg`,
     };
   });
 }
@@ -176,3 +207,55 @@ export function resetModelConfig(): void {
   store = defaultConfig();
   saveConfig();
 }
+
+// ── API Key store ─────────────────────────────────────────────────────────────
+
+function loadApiKeys(): Record<string, string> {
+  try {
+    if (existsSync(KEYS_PATH)) {
+      return JSON.parse(readFileSync(KEYS_PATH, "utf-8"));
+    }
+  } catch { /* ignore */ }
+  return {};
+}
+
+/** Inject stored API keys into process.env so getEnvApiKey() picks them up. */
+export function injectStoredApiKeys(): void {
+  const keys = loadApiKeys();
+  for (const [provider, key] of Object.entries(keys)) {
+    const envVar = ENV_KEY_HINTS[provider];
+    if (envVar && key) {
+      process.env[envVar] = key;
+    }
+  }
+}
+
+/** Set (or clear) a provider API key — persists to disk and injects into env. */
+export function setProviderApiKey(providerId: string, apiKey: string): void {
+  const keys = loadApiKeys();
+  const envVar = ENV_KEY_HINTS[providerId];
+  if (!envVar) return;
+  if (apiKey) {
+    keys[providerId] = apiKey;
+    process.env[envVar] = apiKey;
+  } else {
+    delete keys[providerId];
+    delete process.env[envVar];
+  }
+  try {
+    mkdirSync(config.dataDir, { recursive: true });
+    writeFileSync(KEYS_PATH, JSON.stringify(keys, null, 2));
+  } catch { /* best-effort */ }
+}
+
+/** Return a masked version of a stored key (for UI display), or null if none. */
+export function getProviderKeyMask(providerId: string): string | null {
+  const keys = loadApiKeys();
+  const key = keys[providerId];
+  if (!key) return null;
+  if (key.length <= 8) return "****";
+  return key.slice(0, 4) + "..." + key.slice(-4);
+}
+
+// Inject stored keys on module load (before config is used)
+injectStoredApiKeys();

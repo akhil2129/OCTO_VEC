@@ -6,6 +6,8 @@ export interface DropdownOption {
   label: string;
   /** Optional colored dot shown before the label */
   dot?: string;
+  /** Optional icon URL shown before the label (takes precedence over dot) */
+  iconUrl?: string;
 }
 
 interface DropdownProps {
@@ -59,12 +61,17 @@ export default function Dropdown({
           whiteSpace: "nowrap",
         }}
       >
-        {selected?.dot && (
+        {selected?.iconUrl ? (
+          <img src={selected.iconUrl} alt="" style={{
+            width: 14, height: 14, flexShrink: 0, borderRadius: 2,
+            filter: "var(--icon-filter, none)",
+          }} />
+        ) : selected?.dot ? (
           <span style={{
             width: 6, height: 6, borderRadius: "50%",
             background: selected.dot, flexShrink: 0,
           }} />
-        )}
+        ) : null}
         <span>{selected?.label ?? placeholder}</span>
         <ChevronDown
           size={12}
@@ -121,12 +128,17 @@ export default function Dropdown({
                   if (!active) e.currentTarget.style.background = "transparent";
                 }}
               >
-                {opt.dot && (
+                {opt.iconUrl ? (
+                  <img src={opt.iconUrl} alt="" style={{
+                    width: 14, height: 14, flexShrink: 0, borderRadius: 2,
+                    filter: "var(--icon-filter, none)",
+                  }} />
+                ) : opt.dot ? (
                   <span style={{
                     width: 6, height: 6, borderRadius: "50%",
                     background: opt.dot, flexShrink: 0,
                   }} />
-                )}
+                ) : null}
                 <span style={{ flex: 1 }}>{opt.label}</span>
                 {active && (
                   <span style={{ fontSize: 11, color: "var(--accent)", flexShrink: 0 }}>&#10003;</span>

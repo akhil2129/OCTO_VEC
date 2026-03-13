@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { postApi, apiUrl } from "../hooks/useApi";
 import { usePolling } from "../hooks/useApi";
+import Dropdown, { type DropdownOption } from "../components/Dropdown";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +35,7 @@ interface ProviderInfo {
   configured: boolean;
   envKey: string;
   models: string[];
+  iconUrl: string;
 }
 
 interface ModelConfigData {
@@ -201,7 +203,7 @@ function ConfigRow({ label, value }: { label: string; value: string | number | b
   );
 }
 
-// ── Model tier row (editable provider+model selector) ───────────────────────
+// ── Model tier row — custom Dropdown, configured providers only ──────────────
 
 function ModelTierRow({ tier, slot, color, icon, providers, onSave, saving }: {
   tier: string;
@@ -212,128 +214,121 @@ function ModelTierRow({ tier, slot, color, icon, providers, onSave, saving }: {
   onSave: (slot: ModelSlot | null) => void;
   saving: boolean;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [selProvider, setSelProvider] = useState(slot?.provider ?? providers[0]?.id ?? "");
+  const [selProvider, setSelProvider] = useState(slot?.provider ?? "");
   const [selModel, setSelModel] = useState(slot?.model ?? "");
+  const [dirty, setDirty] = useState(false);
 
   const currentProvider = providers.find((p) => p.id === selProvider);
   const models = currentProvider?.models ?? [];
 
-  function handleSave() {
+  const providerOpts: DropdownOption[] = providers.map((p) => ({
+    value: p.id,
+    label: `${p.name} (${p.models.length})`,
+    iconUrl: p.iconUrl,
+  }));
+
+  const modelOpts: DropdownOption[] = models.map((m) => ({
+    value: m,
+    label: m,
+  }));
+
+  function handleProviderChange(pid: string) {
+    setSelProvider(pid);
+    setSelModel("");
+    setDirty(true);
+  }
+
+  function handleModelChange(mid: string) {
+    setSelModel(mid);
+    setDirty(true);
+  }
+
+  function handleApply() {
     if (selProvider && selModel) {
       onSave({ provider: selProvider, model: selModel });
-    } else {
-      onSave(null);
     }
-    setEditing(false);
+    setDirty(false);
   }
 
   function handleClear() {
     onSave(null);
-    setSelProvider(providers[0]?.id ?? "");
+    setSelProvider("");
     setSelModel("");
-    setEditing(false);
+    setDirty(false);
   }
 
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: 10,
-      padding: "10px 14px", borderRadius: 10,
+      padding: "12px 14px", borderRadius: 10,
       background: "var(--bg-card)", border: "1px solid var(--border)",
     }}>
-      <div style={{
-        width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-        background: slot ? `color-mix(in srgb, ${color} 15%, transparent)` : "var(--bg-tertiary)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        color: slot ? color : "var(--text-muted)",
-      }}>
-        {icon}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      {/* Label row */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
         <div style={{
-          fontSize: 12, fontWeight: 600, color: "var(--text-primary)",
-          textTransform: "capitalize",
+          width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+          background: slot ? `color-mix(in srgb, ${color} 15%, transparent)` : "var(--bg-tertiary)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: slot ? color : "var(--text-muted)",
+        }}>
+          {icon}
+        </div>
+        <span style={{
+          fontSize: 13, fontWeight: 600, color: "var(--text-primary)",
+          textTransform: "capitalize", flex: 1,
         }}>
           {tier}
-        </div>
-        {!editing && (
-          <div style={{
-            fontSize: 11, color: slot ? "var(--text-secondary)" : "var(--text-muted)",
-            fontFamily: "monospace", marginTop: 1,
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        </span>
+        {slot && (
+          <span style={{
+            fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 4,
+            background: `color-mix(in srgb, ${color} 12%, transparent)`,
+            color,
           }}>
-            {slot ? `${slot.provider} / ${slot.model}` : "Not configured"}
-          </div>
+            SET
+          </span>
         )}
       </div>
 
-      {editing ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          <select
-            value={selProvider}
-            onChange={(e) => { setSelProvider(e.target.value); setSelModel(""); }}
-            style={{
-              fontSize: 11, padding: "5px 8px", borderRadius: 6,
-              border: "1px solid var(--border)", background: "var(--bg-tertiary)",
-              color: "var(--text-primary)", fontFamily: "inherit", outline: "none",
-            }}
-          >
-            {providers.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-          <select
+      {/* Dropdowns row */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <Dropdown
+          value={selProvider}
+          onChange={handleProviderChange}
+          options={providerOpts}
+          placeholder="Select provider..."
+          alignRight={false}
+        />
+        {selProvider && (
+          <Dropdown
             value={selModel}
-            onChange={(e) => setSelModel(e.target.value)}
-            style={{
-              fontSize: 11, padding: "5px 8px", borderRadius: 6,
-              border: "1px solid var(--border)", background: "var(--bg-tertiary)",
-              color: "var(--text-primary)", fontFamily: "monospace", outline: "none",
-              maxWidth: 220,
-            }}
-          >
-            <option value="">Select model...</option>
-            {models.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-          <button onClick={handleSave} disabled={saving || !selModel} style={{
+            onChange={handleModelChange}
+            options={modelOpts}
+            placeholder={`Select model (${models.length})...`}
+            alignRight={false}
+          />
+        )}
+        {dirty && selModel && (
+          <button onClick={handleApply} disabled={saving} style={{
             display: "flex", alignItems: "center", justifyContent: "center",
-            width: 26, height: 26, borderRadius: 6, border: "none",
-            background: selModel ? "var(--accent)" : "var(--bg-tertiary)",
-            color: selModel ? "#fff" : "var(--text-muted)",
-            cursor: selModel ? "pointer" : "default", padding: 0,
+            height: 32, padding: "0 14px", borderRadius: 6, border: "none",
+            background: "var(--accent)", color: "#fff", fontSize: 11, fontWeight: 600,
+            cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
+            opacity: saving ? 0.5 : 1,
           }}>
-            <Check size={12} />
+            <Check size={12} style={{ marginRight: 4 }} /> Apply
           </button>
-          {slot && (
-            <button onClick={handleClear} title="Clear" style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              width: 26, height: 26, borderRadius: 6, border: "1px solid var(--border)",
-              background: "transparent", color: "var(--text-muted)",
-              cursor: "pointer", padding: 0,
-            }}>
-              <Trash2 size={11} />
-            </button>
-          )}
-        </div>
-      ) : (
-        <button
-          onClick={() => {
-            setSelProvider(slot?.provider ?? providers[0]?.id ?? "");
-            setSelModel(slot?.model ?? "");
-            setEditing(true);
-          }}
-          style={{
-            fontSize: 11, fontWeight: 500, padding: "4px 12px", borderRadius: 6,
-            border: "1px solid var(--border)", background: "var(--bg-tertiary)",
-            color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit",
-            flexShrink: 0,
-          }}
-        >
-          {slot ? "Change" : "Set"}
-        </button>
-      )}
+        )}
+        {slot && !dirty && (
+          <button onClick={handleClear} disabled={saving} title="Clear this tier" style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            width: 32, height: 32, borderRadius: 6, flexShrink: 0,
+            border: "1px solid var(--border)", background: "transparent",
+            color: "var(--text-muted)", cursor: "pointer", padding: 0,
+          }}>
+            <Trash2 size={12} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -347,6 +342,9 @@ export default function SettingsView() {
   // Model config
   const { data: modelData, refresh: refreshModels } = usePolling<ModelConfigData>("/api/model-config", 10000);
   const [modelSaving, setModelSaving] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<string | null>(null);
+  const [keyInput, setKeyInput] = useState("");
+  const [keySaving, setKeySaving] = useState(false);
 
   // MCP config (editable)
   const [mcpConfig, setMcpConfig] = useState<MCPConfig>({ mcpServers: {} });
@@ -392,6 +390,19 @@ export default function SettingsView() {
       showToast(`${tier.charAt(0).toUpperCase() + tier.slice(1)} model updated`);
     } catch { showToast("Failed to save model config"); }
     finally { setModelSaving(false); }
+  }
+
+  // Provider API key save
+  async function saveProviderKey(providerId: string) {
+    setKeySaving(true);
+    try {
+      await postApi("/api/provider-key", { provider: providerId, key: keyInput });
+      refreshModels();
+      showToast("API key saved");
+      setEditingProvider(null);
+      setKeyInput("");
+    } catch { showToast("Failed to save API key"); }
+    finally { setKeySaving(false); }
   }
 
   // MCP mutations
@@ -547,38 +558,93 @@ export default function SettingsView() {
                   display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
                   gap: 8,
                 }}>
-                  {modelData.providers.map((p) => (
-                    <div key={p.id} style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "10px 12px", borderRadius: 8,
-                      background: "var(--bg-card)", border: "1px solid var(--border)",
-                    }}>
-                      <div style={{
-                        width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-                        background: p.configured ? "var(--green)" : "var(--text-muted)",
-                        opacity: p.configured ? 1 : 0.4,
-                      }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>
-                          {p.name}
-                        </div>
-                        <div style={{
-                          fontSize: 10, color: "var(--text-muted)", fontFamily: "monospace",
-                        }}>
-                          {p.models.length} models · {p.envKey}
-                        </div>
-                      </div>
-                      <span style={{
-                        fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 4,
-                        background: p.configured
-                          ? "color-mix(in srgb, var(--green) 12%, transparent)"
-                          : "var(--bg-tertiary)",
-                        color: p.configured ? "var(--green)" : "var(--text-muted)",
+                  {modelData.providers.map((p) => {
+                    const isEditing = editingProvider === p.id;
+                    return (
+                      <div key={p.id} style={{
+                        display: "flex", flexDirection: "column", gap: 8,
+                        padding: "10px 12px", borderRadius: 8,
+                        background: "var(--bg-card)",
+                        border: isEditing ? "1px solid var(--accent)" : "1px solid var(--border)",
+                        transition: "border-color 0.15s",
                       }}>
-                        {p.configured ? "READY" : "NO KEY"}
-                      </span>
-                    </div>
-                  ))}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <img
+                            src={p.iconUrl}
+                            alt={p.name}
+                            style={{
+                              width: 22, height: 22, flexShrink: 0, borderRadius: 4,
+                              opacity: p.configured ? 1 : 0.35,
+                              filter: "var(--icon-filter, none)",
+                            }}
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>
+                              {p.name}
+                            </div>
+                            <div style={{
+                              fontSize: 10, color: "var(--text-muted)", fontFamily: "monospace",
+                            }}>
+                              {p.models.length} models · {p.envKey || "—"}
+                            </div>
+                          </div>
+                          <span style={{
+                            fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 4,
+                            background: p.configured
+                              ? "color-mix(in srgb, var(--green) 12%, transparent)"
+                              : "var(--bg-tertiary)",
+                            color: p.configured ? "var(--green)" : "var(--text-muted)",
+                          }}>
+                            {p.configured ? "READY" : "NO KEY"}
+                          </span>
+                          <button
+                            onClick={() => {
+                              if (isEditing) { setEditingProvider(null); setKeyInput(""); }
+                              else { setEditingProvider(p.id); setKeyInput(""); }
+                            }}
+                            style={{
+                              fontSize: 10, fontWeight: 500, padding: "3px 8px", borderRadius: 5,
+                              border: "1px solid var(--border)", background: "transparent",
+                              color: isEditing ? "var(--accent)" : "var(--text-muted)",
+                              cursor: "pointer", fontFamily: "inherit",
+                            }}
+                          >
+                            {isEditing ? "Cancel" : p.configured ? "Edit Key" : "Set Key"}
+                          </button>
+                        </div>
+                        {isEditing && (
+                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                            <input
+                              value={keyInput}
+                              onChange={(e) => setKeyInput(e.target.value)}
+                              placeholder={`Paste ${p.envKey || "API key"}...`}
+                              type="password"
+                              autoFocus
+                              style={{ ...inputStyle, flex: 1, fontSize: 12, fontFamily: "monospace" }}
+                              onKeyDown={(e) => e.key === "Enter" && keyInput.trim() && saveProviderKey(p.id)}
+                            />
+                            <button
+                              onClick={() => saveProviderKey(p.id)}
+                              disabled={!keyInput.trim() || keySaving}
+                              style={{
+                                display: "flex", alignItems: "center", gap: 4,
+                                padding: "7px 12px", borderRadius: 6, border: "none",
+                                background: keyInput.trim() ? "var(--accent)" : "var(--bg-tertiary)",
+                                color: keyInput.trim() ? "#fff" : "var(--text-muted)",
+                                fontSize: 11, fontWeight: 600,
+                                cursor: keyInput.trim() ? "pointer" : "default",
+                                fontFamily: "inherit", flexShrink: 0,
+                                opacity: keySaving ? 0.5 : 1,
+                              }}
+                            >
+                              <Save size={11} /> Save
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -604,7 +670,6 @@ export default function SettingsView() {
                       fallback: <Shield size={12} />,
                     };
                     const configuredProviders = modelData.providers.filter((p) => p.configured);
-
                     return (
                       <ModelTierRow
                         key={tier}
