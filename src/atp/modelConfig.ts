@@ -257,5 +257,14 @@ export function getProviderKeyMask(providerId: string): string | null {
   return key.slice(0, 4) + "..." + key.slice(-4);
 }
 
+/** Look up per-model cost rates (USD per 1M tokens) from the pi-ai registry. */
+export function getModelCostRates(provider: string, modelId: string): {
+  inputPerM: number; outputPerM: number; cacheReadPerM: number;
+} | null {
+  const m = (MODELS as Record<string, Record<string, any>>)[provider]?.[modelId];
+  if (!m?.cost) return null;
+  return { inputPerM: m.cost.input, outputPerM: m.cost.output, cacheReadPerM: m.cost.cacheRead ?? 0 };
+}
+
 // Inject stored keys on module load (before config is used)
 injectStoredApiKeys();

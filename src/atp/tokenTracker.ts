@@ -14,23 +14,22 @@ import { config } from "../config.js";
 
 const USAGE_PATH = join(config.dataDir, "token-usage.json");
 
-// ── Pricing (USD per 1M tokens) ──────────────────────────────────────────────
-// Default rates for common models. Override via env vars if needed.
-const INPUT_COST_PER_M = parseFloat(process.env.VEC_INPUT_COST_PER_M ?? "0.50");
-const OUTPUT_COST_PER_M = parseFloat(process.env.VEC_OUTPUT_COST_PER_M ?? "1.50");
-const USD_TO_INR = parseFloat(process.env.VEC_USD_TO_INR ?? "85.0");
+// ── Fallback pricing (USD per 1M tokens) ─────────────────────────────────────
+// Used only when real per-model cost data isn't available from the provider.
+const FALLBACK_INPUT_PER_M = parseFloat(process.env.VEC_INPUT_COST_PER_M ?? "0.50");
+const FALLBACK_OUTPUT_PER_M = parseFloat(process.env.VEC_OUTPUT_COST_PER_M ?? "1.50");
 
 // ── Per-agent accumulator ────────────────────────────────────────────────────
 
 export interface AgentUsage {
   agentId: string;
   turns: number;
-  inputTokens: number;   // estimated
-  outputTokens: number;  // estimated from streamed text
+  inputTokens: number;
+  outputTokens: number;
   totalTokens: number;
   costUsd: number;
-  costInr: number;
   lastActivity: string;  // ISO timestamp
+  model?: string;        // last model used (e.g. "claude-sonnet-4-20250514")
 }
 
 interface UsageStore {
@@ -70,7 +69,6 @@ function ensureAgent(agentId: string): AgentUsage {
       outputTokens: 0,
       totalTokens: 0,
       costUsd: 0,
-      costInr: 0,
       lastActivity: new Date().toISOString(),
     };
   }
@@ -81,9 +79,13 @@ function charsToTokens(chars: number): number {
   return Math.ceil(chars / 4);
 }
 
-function computeCost(inputTokens: number, outputTokens: number): { usd: number; inr: number } {
-  const usd = (inputTokens * INPUT_COST_PER_M + outputTokens * OUTPUT_COST_PER_M) / 1_000_000;
-  return { usd, inr: usd * USD_TO_INR };
+function computeCostUsd(
+  inputTokens: number,
+  outputTokens: number,
+  inputPerM = FALLBACK_INPUT_PER_M,
+  outputPerM = FALLBACK_OUTPUT_PER_M,
+): number {
+  return (inputTokens * inputPerM + outputTokens * outputPerM) / 1_000_000;
 }
 
 // ── Public API ───────────────────────────────────────────────────────────────
@@ -98,22 +100,43 @@ export function trackOutputChars(agentId: string, chars: number): void {
   _turnChars[agentId] = (_turnChars[agentId] ?? 0) + chars;
 }
 
-/** Call when an agent finishes a turn. Estimates input tokens as ~2x output. */
-export function trackTurnEnd(agentId: string): void {
+/** Call when an agent finishes a turn. Uses real usage data if provided, else estimates. */
+export function trackTurnEnd(agentId: string, opts?: {
+  model?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  costUsd?: number;
+  inputCostPerM?: number;
+  outputCostPerM?: number;
+}): void {
   const agent = ensureAgent(agentId);
-  const outputChars = _turnChars[agentId] ?? 0;
-  const outputTokens = charsToTokens(outputChars);
-  // Rough estimate: input context is typically 2-3x the output for agentic workflows
-  const inputTokens = Math.ceil(outputTokens * 2.5);
+
+  let inputTokens: number;
+  let outputTokens: number;
+  let cost: number;
+
+  if (opts?.inputTokens != null && opts?.outputTokens != null) {
+    // Real usage data from the provider
+    inputTokens = opts.inputTokens;
+    outputTokens = opts.outputTokens;
+    cost = opts.costUsd != null
+      ? opts.costUsd
+      : computeCostUsd(inputTokens, outputTokens, opts.inputCostPerM, opts.outputCostPerM);
+  } else {
+    // Fallback: estimate from streamed chars
+    const outputChars = _turnChars[agentId] ?? 0;
+    outputTokens = charsToTokens(outputChars);
+    inputTokens = Math.ceil(outputTokens * 2.5);
+    cost = computeCostUsd(inputTokens, outputTokens);
+  }
 
   agent.turns += 1;
   agent.outputTokens += outputTokens;
   agent.inputTokens += inputTokens;
   agent.totalTokens += inputTokens + outputTokens;
-  const cost = computeCost(inputTokens, outputTokens);
-  agent.costUsd += cost.usd;
-  agent.costInr += cost.inr;
+  agent.costUsd += cost;
   agent.lastActivity = new Date().toISOString();
+  if (opts?.model) agent.model = opts.model;
 
   delete _turnChars[agentId];
   saveStore();
@@ -131,9 +154,7 @@ export function getTotals(): {
   totalOutputTokens: number;
   totalTokens: number;
   totalCostUsd: number;
-  totalCostInr: number;
   sessionStart: string;
-  pricing: { inputPerM: number; outputPerM: number; usdToInr: number };
 } {
   const agents = Object.values(store.agents);
   return {
@@ -142,9 +163,7 @@ export function getTotals(): {
     totalOutputTokens: agents.reduce((s, a) => s + a.outputTokens, 0),
     totalTokens: agents.reduce((s, a) => s + a.totalTokens, 0),
     totalCostUsd: agents.reduce((s, a) => s + a.costUsd, 0),
-    totalCostInr: agents.reduce((s, a) => s + a.costInr, 0),
     sessionStart: store.sessionStart,
-    pricing: { inputPerM: INPUT_COST_PER_M, outputPerM: OUTPUT_COST_PER_M, usdToInr: USD_TO_INR },
   };
 }
 

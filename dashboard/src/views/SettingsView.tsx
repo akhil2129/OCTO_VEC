@@ -484,10 +484,10 @@ export default function SettingsView() {
     finally { setModelSaving(false); }
   }
 
-  async function saveProviderKey(providerId: string) {
+  async function saveProviderKey(providerId: string, apiKey: string) {
     setKeySaving(true);
     try {
-      await postApi("/api/provider-key", { provider: providerId, key: keyInput });
+      await postApi("/api/provider-key", { provider: providerId, key: apiKey });
       refreshModels();
       showToast("API key saved");
       setEditingProvider(null);
@@ -667,18 +667,12 @@ export default function SettingsView() {
         <div>
           <SectionLabel title="Configured Providers" count={configured.length} />
           <div style={{
-            display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+            display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
             gap: 8,
           }}>
             {configured.map((p) => (
-              <ProviderCard key={p.id} provider={p} isEditing={editingProvider === p.id}
-                keyInput={keyInput} keySaving={keySaving}
-                onToggleEdit={() => {
-                  if (editingProvider === p.id) { setEditingProvider(null); setKeyInput(""); }
-                  else { setEditingProvider(p.id); setKeyInput(""); }
-                }}
-                onKeyChange={setKeyInput}
-                onSave={() => saveProviderKey(p.id)}
+              <ProviderCard key={p.id} provider={p}
+                onClick={() => { setEditingProvider(p.id); setKeyInput(""); }}
               />
             ))}
           </div>
@@ -689,18 +683,12 @@ export default function SettingsView() {
           <div>
             <SectionLabel title="Available Providers" count={unconfigured.length} />
             <div style={{
-              display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+              display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
               gap: 8,
             }}>
               {unconfigured.map((p) => (
-                <ProviderCard key={p.id} provider={p} isEditing={editingProvider === p.id}
-                  keyInput={keyInput} keySaving={keySaving}
-                  onToggleEdit={() => {
-                    if (editingProvider === p.id) { setEditingProvider(null); setKeyInput(""); }
-                    else { setEditingProvider(p.id); setKeyInput(""); }
-                  }}
-                  onKeyChange={setKeyInput}
-                  onSave={() => saveProviderKey(p.id)}
+                <ProviderCard key={p.id} provider={p}
+                  onClick={() => { setEditingProvider(p.id); setKeyInput(""); }}
                 />
               ))}
             </div>
@@ -1094,6 +1082,20 @@ export default function SettingsView() {
         </div>
       </div>
 
+      {/* API Key Modal */}
+      {editingProvider && modelData && (() => {
+        const provider = modelData.providers.find(p => p.id === editingProvider);
+        if (!provider) return null;
+        return (
+          <APIKeyModal
+            provider={provider}
+            onClose={() => { setEditingProvider(null); setKeyInput(""); }}
+            onSave={(key) => saveProviderKey(provider.id, key)}
+            saving={keySaving}
+          />
+        );
+      })()}
+
       {/* Toast */}
       {toast && (
         <div style={{
@@ -1111,91 +1113,234 @@ export default function SettingsView() {
   );
 }
 
-// ── Provider Card ───────────────────────────────────────────────────────────
+// ── Provider Card (simplified — opens modal on click) ───────────────────────
 
-function ProviderCard({ provider: p, isEditing, keyInput, keySaving, onToggleEdit, onKeyChange, onSave }: {
+function ProviderCard({ provider: p, onClick }: {
   provider: ProviderInfo;
-  isEditing: boolean;
-  keyInput: string;
-  keySaving: boolean;
-  onToggleEdit: () => void;
-  onKeyChange: (v: string) => void;
-  onSave: () => void;
+  onClick: () => void;
 }) {
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", gap: 8,
-      padding: "12px 14px", borderRadius: 10,
-      background: "var(--bg-card)",
-      border: isEditing ? "1px solid var(--accent)" : "1px solid var(--border)",
-      transition: "border-color 0.15s",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <img
-          src={p.iconUrl}
-          alt={p.name}
-          style={{
-            width: 24, height: 24, flexShrink: 0, borderRadius: 5,
-            filter: "var(--icon-filter, none)",
-          }}
-          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-        />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
-            {p.name}
-          </div>
-          <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "monospace" }}>
-            {p.models.length} models
-          </div>
-        </div>
-        <div style={{
-          width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-          background: p.configured ? "var(--green)" : "var(--text-muted)",
-          opacity: p.configured ? 1 : 0.3,
-        }} />
-      </div>
-      <button
-        onClick={onToggleEdit}
+    <button
+      onClick={onClick}
+      style={{
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "12px 14px", borderRadius: 10, width: "100%",
+        background: "var(--bg-card)", border: "1px solid var(--border)",
+        cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+        transition: "border-color 0.12s, background 0.12s",
+      }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.background = "var(--bg-hover)"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg-card)"; }}
+    >
+      <img
+        src={p.iconUrl}
+        alt={p.name}
         style={{
-          fontSize: 11, fontWeight: 500, padding: "5px 0", borderRadius: 6, width: "100%",
-          border: "1px solid var(--border)", background: "var(--bg-tertiary)",
-          color: isEditing ? "var(--accent)" : "var(--text-muted)",
-          cursor: "pointer", fontFamily: "inherit",
-          transition: "color 0.12s, border-color 0.12s",
+          width: 28, height: 28, flexShrink: 0, borderRadius: 6,
+          filter: "var(--icon-filter, none)",
         }}
-      >
-        {isEditing ? "Cancel" : p.configured ? "Edit Key" : "Set Key"}
-      </button>
-      {isEditing && (
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <input
-            value={keyInput}
-            onChange={(e) => onKeyChange(e.target.value)}
-            placeholder={`Paste ${p.envKey || "API key"}...`}
-            type="password"
-            autoFocus
-            style={{ ...inputStyle, flex: 1, fontSize: 12, fontFamily: "monospace" }}
-            onKeyDown={(e) => e.key === "Enter" && keyInput.trim() && onSave()}
-          />
-          <button
-            onClick={onSave}
-            disabled={!keyInput.trim() || keySaving}
+        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+          {p.name}
+        </div>
+        <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "monospace" }}>
+          {p.models.length} model{p.models.length !== 1 ? "s" : ""}
+        </div>
+      </div>
+      <div style={{
+        width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+        background: p.configured ? "var(--green)" : "var(--text-muted)",
+        opacity: p.configured ? 1 : 0.3,
+      }} />
+    </button>
+  );
+}
+
+// ── API Key Modal ───────────────────────────────────────────────────────────
+
+function APIKeyModal({ provider, onClose, onSave, saving }: {
+  provider: ProviderInfo;
+  onClose: () => void;
+  onSave: (key: string) => void;
+  saving: boolean;
+}) {
+  const [key, setKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed", inset: 0, zIndex: 100,
+          background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+        }}
+      />
+      {/* Modal */}
+      <div style={{
+        position: "fixed", top: "50%", left: "50%",
+        transform: "translate(-50%, -50%)", zIndex: 101,
+        background: "var(--bg-secondary)", border: "1px solid var(--border)",
+        borderRadius: 16, width: 440, maxWidth: "92vw",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px var(--border)",
+        overflow: "hidden", animation: "fade-in 0.12s ease-out",
+      }}>
+        {/* Header */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "18px 22px 14px",
+          borderBottom: "1px solid var(--border)",
+        }}>
+          <img
+            src={provider.iconUrl}
+            alt={provider.name}
             style={{
-              display: "flex", alignItems: "center", gap: 4,
-              padding: "7px 12px", borderRadius: 7, border: "none",
-              background: keyInput.trim() ? "var(--accent)" : "var(--bg-tertiary)",
-              color: keyInput.trim() ? "#fff" : "var(--text-muted)",
-              fontSize: 11, fontWeight: 600,
-              cursor: keyInput.trim() ? "pointer" : "default",
-              fontFamily: "inherit", flexShrink: 0,
-              opacity: keySaving ? 0.5 : 1, transition: "opacity 0.12s",
+              width: 34, height: 34, borderRadius: 8,
+              filter: "var(--icon-filter, none)",
             }}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>
+              {provider.name}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>
+              {provider.configured ? "Update API key" : "Configure API key"}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            width: 28, height: 28, border: "1px solid var(--border)", borderRadius: 8,
+            background: "var(--bg-tertiary)", color: "var(--text-muted)",
+            cursor: "pointer", padding: 0, transition: "all 0.12s",
+          }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--bg-tertiary)"; e.currentTarget.style.color = "var(--text-muted)"; }}
           >
-            <Save size={11} /> Save
+            <X size={14} />
           </button>
         </div>
-      )}
-    </div>
+
+        {/* Body */}
+        <div style={{ padding: "18px 22px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Provider info */}
+          <div style={{
+            display: "flex", gap: 12, flexWrap: "wrap",
+          }}>
+            <div style={{
+              flex: "1 1 100px", padding: "10px 14px", borderRadius: 8,
+              background: "var(--bg-card)", border: "1px solid var(--border)",
+            }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "var(--purple)", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                {provider.models.length}
+              </div>
+              <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 3 }}>Models</div>
+            </div>
+            <div style={{
+              flex: "1 1 100px", padding: "10px 14px", borderRadius: 8,
+              background: "var(--bg-card)", border: "1px solid var(--border)",
+            }}>
+              <div style={{
+                fontSize: 12, fontWeight: 600, lineHeight: 1.2,
+                color: provider.configured ? "var(--green)" : "var(--text-muted)",
+              }}>
+                {provider.configured ? "Active" : "Not Set"}
+              </div>
+              <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 3 }}>Status</div>
+            </div>
+          </div>
+
+          {/* Model list */}
+          {provider.models.length > 0 && (
+            <div>
+              <div style={{
+                fontSize: 11, fontWeight: 600, color: "var(--text-muted)",
+                textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6,
+              }}>Available Models</div>
+              <div style={{
+                display: "flex", flexWrap: "wrap", gap: 4,
+                maxHeight: 80, overflowY: "auto",
+              }}>
+                {provider.models.map(m => (
+                  <span key={m} style={{
+                    fontSize: 10, padding: "3px 8px", borderRadius: 5,
+                    background: "var(--bg-tertiary)", color: "var(--text-secondary)",
+                    fontFamily: "monospace", border: "1px solid var(--border)",
+                  }}>{m.split("/").pop()}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Key input */}
+          <div>
+            <label style={{
+              fontSize: 12, fontWeight: 500, color: "var(--text-secondary)",
+              marginBottom: 6, display: "block",
+            }}>
+              API Key
+              <span style={{ fontWeight: 400, marginLeft: 6, opacity: 0.6, fontFamily: "monospace", fontSize: 11 }}>
+                {provider.envKey}
+              </span>
+            </label>
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <input
+                value={key}
+                onChange={e => setKey(e.target.value)}
+                placeholder={`Paste your ${provider.name} API key...`}
+                type={showKey ? "text" : "password"}
+                autoFocus
+                style={{
+                  ...inputStyle, flex: 1, fontSize: 13, fontFamily: "monospace",
+                  padding: "10px 12px",
+                }}
+                onKeyDown={e => e.key === "Enter" && key.trim() && onSave(key)}
+              />
+              <button
+                onClick={() => setShowKey(s => !s)}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                  border: "1px solid var(--border)", background: "var(--bg-tertiary)",
+                  color: showKey ? "var(--accent)" : "var(--text-muted)",
+                  cursor: "pointer", padding: 0, transition: "color 0.12s",
+                }}
+                title={showKey ? "Hide key" : "Show key"}
+              >
+                <Eye size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
+            <button onClick={onClose} style={{
+              ...btnSecondary, padding: "8px 16px", fontSize: 12, borderRadius: 8,
+            }}>Cancel</button>
+            <button
+              onClick={() => key.trim() && onSave(key)}
+              disabled={!key.trim() || saving}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "8px 20px", borderRadius: 8, border: "none",
+                background: key.trim() ? "var(--accent)" : "var(--bg-tertiary)",
+                color: key.trim() ? "#fff" : "var(--text-muted)",
+                fontSize: 12, fontWeight: 600,
+                cursor: key.trim() ? "pointer" : "default",
+                fontFamily: "inherit",
+                opacity: saving ? 0.6 : 1, transition: "opacity 0.12s, background 0.12s",
+              }}
+            >
+              <Save size={13} /> {saving ? "Saving..." : "Save Key"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 

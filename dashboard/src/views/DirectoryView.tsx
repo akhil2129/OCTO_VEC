@@ -8,6 +8,7 @@ import { usePolling, postApi, deleteApi } from "../hooks/useApi";
 import { useAgentStream } from "../hooks/useSSE";
 import { useEmployees } from "../context/EmployeesContext";
 import Dropdown from "../components/Dropdown";
+import ConfirmModal from "../components/ConfirmModal";
 import type {
   Task, AgentProfile,
   AgentRuntimeEntry, RoleTemplateSummary,
@@ -700,6 +701,7 @@ export default function DirectoryView() {
   const [viewMode, setViewMode] = useState<"grid" | "department">("grid");
   const [busy, setBusy] = useState<Record<string, string | null>>({});
   const [hireOpen, setHireOpen] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
 
   // Expand animation state
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
@@ -798,7 +800,7 @@ export default function DirectoryView() {
   }
 
   async function doRemove(agentId: string) {
-    if (!confirm(`Remove agent @${agentId}? This will delete them from the roster.`)) return;
+    setConfirmRemove(null);
     setBusy((p) => ({ ...p, [agentId]: "remove" }));
     try {
       await deleteApi(`/api/agents/${agentId}`);
@@ -959,7 +961,7 @@ export default function DirectoryView() {
               {rt.enabled ? "On" : "Off"}
             </button>
             <button
-              onClick={() => doRemove(key)}
+              onClick={() => setConfirmRemove(key)}
               disabled={busy[key] === "remove"}
               title="Remove"
               style={{
@@ -1267,7 +1269,7 @@ export default function DirectoryView() {
                       {expandedRuntime.enabled ? "On" : "Off"}
                     </button>
                     <button
-                      onClick={() => { doRemove(expandedAgent); closeSettings(); }}
+                      onClick={() => { setConfirmRemove(expandedAgent); closeSettings(); }}
                       disabled={busy[expandedAgent] === "remove"}
                       title="Remove agent"
                       style={{
@@ -1347,6 +1349,18 @@ export default function DirectoryView() {
           templates={roleTemplates}
           onHire={doHire}
           onClose={() => setHireOpen(false)}
+        />
+      )}
+
+      {/* Remove agent confirmation */}
+      {confirmRemove && (
+        <ConfirmModal
+          title="Remove Agent"
+          message={`Remove agent @${confirmRemove}? This will delete them from the roster and cannot be undone.`}
+          confirmLabel="Remove"
+          destructive
+          onConfirm={() => doRemove(confirmRemove)}
+          onCancel={() => setConfirmRemove(null)}
         />
       )}
     </div>

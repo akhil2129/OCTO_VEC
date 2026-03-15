@@ -37,7 +37,13 @@ function timeLabel(ts: string): string {
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export default function ChatView() {
-  const [selectedAgent, setSelectedAgent] = useState("pm");
+  const [selectedAgent, _setSelectedAgent] = useState<string>(
+    () => sessionStorage.getItem("chat_selected_agent") ?? ""
+  );
+  const setSelectedAgent = useCallback((key: string) => {
+    sessionStorage.setItem("chat_selected_agent", key);
+    _setSelectedAgent(key);
+  }, []);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -60,14 +66,37 @@ export default function ChatView() {
     return emps.filter((e) => e.agent_key !== "user");
   }, [employees]);
 
-  // Filtered agents for search
+  // Filtered + sorted agents (most recent chat first, like WhatsApp/Teams)
   const filteredAgents = useMemo(() => {
-    if (!agentSearch.trim()) return agents;
-    const q = agentSearch.toLowerCase();
-    return agents.filter((a) =>
-      a.name.toLowerCase().includes(q) || a.role.toLowerCase().includes(q) || a.agent_key.toLowerCase().includes(q)
-    );
-  }, [agents, agentSearch]);
+    let list = agents;
+    if (agentSearch.trim()) {
+      const q = agentSearch.toLowerCase();
+      list = list.filter((a) =>
+        a.name.toLowerCase().includes(q) || a.role.toLowerCase().includes(q) || a.agent_key.toLowerCase().includes(q)
+      );
+    }
+    // Sort by last message timestamp descending (agents with no messages go to bottom)
+    const all = allEntries ?? [];
+    const lastTs = new Map<string, number>();
+    for (const e of all) {
+      if (SYSTEM_PREFIXES.some((p) => (e.message ?? "").trim().startsWith(p))) continue;
+      const key = e.from === "user" ? e.to : e.from;
+      const ts = new Date(e.timestamp).getTime();
+      if (!lastTs.has(key) || ts > lastTs.get(key)!) lastTs.set(key, ts);
+    }
+    return [...list].sort((a, b) => {
+      const ta = lastTs.get(a.agent_key) ?? 0;
+      const tb = lastTs.get(b.agent_key) ?? 0;
+      return tb - ta;
+    });
+  }, [agents, agentSearch, allEntries]);
+
+  // Auto-select the most recent agent on first load
+  useEffect(() => {
+    if (!selectedAgent && filteredAgents.length > 0) {
+      setSelectedAgent(filteredAgents[0].agent_key);
+    }
+  }, [filteredAgents, selectedAgent]);
 
   // ── Selection helpers ──────────────────────────────────────────────────────
 
@@ -586,8 +615,8 @@ export default function ChatView() {
                       marginTop: sameSender ? 2 : 10,
                       alignItems: "flex-end", gap: 8,
                     }}>
-                      {/* Agent avatar */}
-                      {!isUser && (
+                      {/* Agent avatar — only in group chats */}
+                      {!isUser && isGroupMode && (
                         <div style={{ width: 28, flexShrink: 0 }}>
                           {!sameSender && (
                             <div style={{
@@ -606,32 +635,32 @@ export default function ChatView() {
                         display: "flex", flexDirection: "column",
                         alignItems: isUser ? "flex-end" : "flex-start",
                       }}>
-                        {/* In group mode, show agent name above their message */}
+                        {/* Sender name — only in group chats */}
                         {isGroupMode && !isUser && !sameSender && (
                           <div style={{ fontSize: 11, fontWeight: 600, color: msgColor, marginBottom: 2, paddingInline: 4 }}>
                             {msgName}
                           </div>
                         )}
                         <div className={isUser ? undefined : "md-content"} style={{
-                          padding: "8px 14px",
+                          padding: "8px 14px 6px",
                           borderRadius: isUser
                             ? (sameSender ? "14px 14px 4px 14px" : "14px 14px 4px 14px")
                             : (sameSender ? "14px 14px 14px 4px" : "14px 14px 14px 4px"),
                           background: isUser ? "var(--accent)" : "var(--bg-tertiary)",
                           color: isUser ? "#fff" : "var(--text-primary)",
                           fontSize: 13, lineHeight: 1.55,
-                          whiteSpace: "pre-wrap", wordBreak: "break-word",
+                          wordBreak: "break-word",
                         }}>
                           {isUser ? msgContent : <Markdown remarkPlugins={[remarkGfm]} components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> }}>{entry.message}</Markdown>}
-                        </div>
-                        {(!displayEntries[i + 1] || displayEntries[i + 1]?.from !== entry.from) && (
+                          {/* Inline timestamp like WhatsApp */}
                           <div style={{
-                            fontSize: 10, color: "var(--text-muted)",
-                            marginTop: 3, paddingInline: 4,
+                            fontSize: 10, lineHeight: 1,
+                            color: isUser ? "rgba(255,255,255,0.6)" : "var(--text-muted)",
+                            textAlign: "right", marginTop: 4,
                           }}>
-                            {timeLabel(entry.timestamp)}
+                            {new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </div>
-                        )}
+                        </div>
                       </div>
                     </div>
                   </div>

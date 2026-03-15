@@ -13,6 +13,7 @@
 import { EventEmitter } from "events";
 import type { AgentEvent } from "@mariozechner/pi-agent-core";
 import { trackTurnStart, trackOutputChars, trackTurnEnd } from "./tokenTracker.js";
+import { getModelCostRates } from "./modelConfig.js";
 
 // ── Token shape ───────────────────────────────────────────────────────────────
 
@@ -149,10 +150,47 @@ export function publishAgentStream(agentId: string, event: AgentEvent): void {
       break;
     }
 
-    case "agent_end":
-      trackTurnEnd(agentId);
+    case "agent_end": {
+      // Extract real usage from AssistantMessages in the event
+      const msgs = (event as any).messages ?? [];
+      let realInput = 0;
+      let realOutput = 0;
+      let realCostUsd = 0;
+      let model: string | undefined;
+
+      for (const msg of msgs) {
+        if (msg.role === "assistant" && msg.usage) {
+          realInput += msg.usage.input ?? 0;
+          realOutput += msg.usage.output ?? 0;
+          realCostUsd += msg.usage.cost?.total ?? 0;
+          if (msg.model) model = msg.model;
+        }
+      }
+
+      const hasRealTokens = realInput > 0 || realOutput > 0;
+
+      if (hasRealTokens) {
+        // Use real token counts and cost from the provider
+        const rates = model ? getModelCostRates(
+          msgs.find((m: any) => m.role === "assistant")?.provider ?? "",
+          model,
+        ) : null;
+        trackTurnEnd(agentId, {
+          model,
+          inputTokens: realInput,
+          outputTokens: realOutput,
+          costUsd: realCostUsd > 0 ? realCostUsd : undefined,
+          inputCostPerM: rates?.inputPerM,
+          outputCostPerM: rates?.outputPerM,
+        });
+      } else {
+        // Fallback to char-based estimation (model name still useful)
+        trackTurnEnd(agentId, model ? { model } : undefined);
+      }
+
       emit({ agentId, type: "agent_end", content: "" });
       break;
+    }
 
     default:
       break;
