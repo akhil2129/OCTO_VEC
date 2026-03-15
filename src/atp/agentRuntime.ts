@@ -51,9 +51,11 @@ export class AgentRuntime {
   readonly allAgents: Map<string, VECAgent>;
   private deps: SpecialistDeps;
 
-  constructor(deps: SpecialistDeps, pmAgent: VECAgent) {
+  constructor(deps: SpecialistDeps, pmAgent: VECAgent, sharedMap?: Map<string, VECAgent>) {
     this.deps = deps;
-    this.allAgents = new Map<string, VECAgent>([["pm", pmAgent]]);
+    // Use caller-provided Map if given (so PM tools keep a live reference), else create new
+    this.allAgents = sharedMap ?? new Map<string, VECAgent>();
+    this.allAgents.set("pm", pmAgent);
 
     // Boot all enabled specialists from roster
     const entries = getSpecialistEntries();

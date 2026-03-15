@@ -264,7 +264,7 @@ export function getPMTaskTools(deps: PMTaskToolDeps): AgentTool[] {
     execute: async (_, params: any) => {
       const agentId = params.agent_id.trim().toLowerCase();
       if (!deps.agents.has(agentId)) {
-        return ok(`ERROR: Unknown agent_id '${params.agent_id}'. Available: ${[...deps.agents.keys()].join(", ")}`);
+        return ok(`ERROR: Unknown agent_id '${params.agent_id}'. You must use the agent_id (e.g. 'architect', 'dev', 'ba'), NOT the agent's name. Available IDs: ${[...deps.agents.keys()].filter(k => k !== "pm").join(", ")}`);
       }
 
       const scheduledDate = params.scheduled_date ? resolveScheduledDate(params.scheduled_date) : "";

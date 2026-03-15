@@ -36,12 +36,25 @@ export const DEFAULT_ROSTER_PATH = join(CORE_DIR, "roster.json");
 // Seed USER_DATA_DIR + roster.json BEFORE any other module tries to load it.
 // This must happen here (not in main()) because modules like agentMessageQueue.ts
 // call loadRoster() at top-level import time.
-import { mkdirSync, existsSync, copyFileSync } from "fs";
+import { mkdirSync, existsSync, copyFileSync, readFileSync, writeFileSync } from "fs";
 mkdirSync(USER_DATA_DIR, { recursive: true });
 const _userRoster = join(USER_DATA_DIR, "roster.json");
 if (!existsSync(_userRoster) && existsSync(DEFAULT_ROSTER_PATH)) {
   copyFileSync(DEFAULT_ROSTER_PATH, _userRoster);
 }
+
+// ── Persistent settings file (workspace override, etc.) ───────────────────
+const SETTINGS_PATH = join(USER_DATA_DIR, "settings.json");
+function loadPersistedSettings(): Record<string, string> {
+  try {
+    if (existsSync(SETTINGS_PATH)) return JSON.parse(readFileSync(SETTINGS_PATH, "utf-8"));
+  } catch { /* ignore corrupt file */ }
+  return {};
+}
+function savePersistedSettings(data: Record<string, string>): void {
+  writeFileSync(SETTINGS_PATH, JSON.stringify(data, null, 2), "utf-8");
+}
+const _persisted = loadPersistedSettings();
 
 const thinkingLevelRaw = (process.env.VEC_THINKING_LEVEL ?? "off").trim().toLowerCase();
 const thinkingLevel: ThinkingLevel =
@@ -72,8 +85,8 @@ export const config = {
 
   companyName: process.env.COMPANY_NAME ?? "VEC",
   workspace: process.env.VEC_WORKSPACE
-    ? process.env.VEC_WORKSPACE
-    : join(process.cwd(), "workspace"),
+    ?? _persisted.workspace
+    ?? join(process.cwd(), "workspace"),
   pmProactiveEnabled:
     !["0", "false", "no"].includes(
       (process.env.VEC_PM_PROACTIVE_ENABLED ?? "0").trim().toLowerCase()
@@ -129,6 +142,18 @@ export const config = {
     (process.env.VEC_POST_TASK_SCANS ?? "1").trim().toLowerCase()
   ),
 };
+
+/**
+ * Update the workspace directory at runtime and persist to settings.json.
+ * Takes effect immediately — new tasks will use the updated path.
+ * Existing in-progress tasks keep their original paths until completion.
+ */
+export function setWorkspace(newPath: string): void {
+  config.workspace = newPath;
+  const s = loadPersistedSettings();
+  s.workspace = newPath;
+  savePersistedSettings(s);
+}
 
 /** Shared workspace — all agents can read/write cross-agent deliverables here. */
 export const sharedWorkspace = join(config.workspace, "shared");

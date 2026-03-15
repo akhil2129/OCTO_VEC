@@ -20,7 +20,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { config, PACKAGE_ROOT, USER_DATA_DIR } from "../config.js";
+import { config, PACKAGE_ROOT, USER_DATA_DIR, setWorkspace } from "../config.js";
 import { getMaskedIntegrationConfig, saveIntegrationConfig } from "../integrations/integrationConfig.js";
 
 // React build output — relative to package root (works both in dev and npm global install)
@@ -2908,6 +2908,23 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
       },
       integrations: getMaskedIntegrationConfig(),
     });
+  });
+
+  // ── Workspace update ───────────────────────────────────────────────────
+  app.post("/api/workspace", (req, res) => {
+    const { path: wsPath } = req.body ?? {};
+    if (!wsPath || typeof wsPath !== "string" || !wsPath.trim()) {
+      res.status(400).json({ error: "path is required" });
+      return;
+    }
+    try {
+      const resolved = require("path").resolve(wsPath.trim());
+      require("fs").mkdirSync(resolved, { recursive: true });
+      setWorkspace(resolved);
+      res.json({ ok: true, workspace: resolved });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message ?? "Failed to update workspace" });
+    }
   });
 
   // ── Model Config: per-agent model overrides + provider priority ────────

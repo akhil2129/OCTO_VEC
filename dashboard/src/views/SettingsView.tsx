@@ -204,6 +204,79 @@ function ConfigRow({ label, value, icon }: { label: string; value: string | numb
   );
 }
 
+// ── Editable path row ────────────────────────────────────────────────────────
+
+function EditablePathRow({ label, value, icon, onSave }: {
+  label: string; value: string; icon?: React.ReactNode;
+  onSave: (newPath: string) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setDraft(value); }, [value]);
+
+  const handleSave = async () => {
+    if (!draft.trim() || draft === value) { setEditing(false); return; }
+    setSaving(true);
+    try { await onSave(draft.trim()); setEditing(false); } catch { /* keep editing */ }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "10px 0", borderBottom: "1px solid var(--border)",
+    }}>
+      {icon && <span style={{ color: "var(--text-muted)", flexShrink: 0, display: "flex" }}>{icon}</span>}
+      <span style={{ fontSize: 13, color: "var(--text-secondary)", flexShrink: 0 }}>{label}</span>
+      {editing ? (
+        <div style={{ flex: 1, display: "flex", gap: 6, alignItems: "center" }}>
+          <input
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
+            autoFocus
+            style={{
+              flex: 1, fontSize: 12, fontFamily: "monospace", padding: "4px 8px",
+              borderRadius: 5, border: "1px solid var(--border)",
+              background: "var(--bg-secondary)", color: "var(--text-primary)", outline: "none",
+            }}
+          />
+          <button onClick={handleSave} disabled={saving} style={{
+            padding: "4px 10px", fontSize: 11, fontWeight: 600, borderRadius: 5, border: "none",
+            background: "var(--accent)", color: "#fff", cursor: "pointer", opacity: saving ? 0.6 : 1,
+          }}>
+            {saving ? "..." : "Save"}
+          </button>
+          <button onClick={() => { setDraft(value); setEditing(false); }} style={{
+            padding: "4px 8px", fontSize: 11, borderRadius: 5, border: "1px solid var(--border)",
+            background: "transparent", color: "var(--text-muted)", cursor: "pointer",
+          }}>
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
+          <span style={{
+            fontSize: 12, color: "var(--text-primary)", fontFamily: "monospace",
+            background: "var(--bg-tertiary)", padding: "3px 10px", borderRadius: 5,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 360,
+          }}>
+            {value}
+          </span>
+          <button onClick={() => setEditing(true)} style={{
+            padding: "3px 8px", fontSize: 11, borderRadius: 5, border: "1px solid var(--border)",
+            background: "transparent", color: "var(--text-muted)", cursor: "pointer",
+          }}>
+            Edit
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Model tier row ──────────────────────────────────────────────────────────
 
 function ModelTierRow({ tier, slot, color, icon, providers, onSave, saving }: {
@@ -373,7 +446,7 @@ export default function SettingsView() {
   }, []);
 
   // System settings (read-only)
-  const { data: settings } = usePolling<SystemSettings>("/api/settings", 10000);
+  const { data: settings, refresh: refreshSettings } = usePolling<SystemSettings>("/api/settings", 10000);
 
   // Model config
   const { data: modelData, refresh: refreshModels } = usePolling<ModelConfigData>("/api/model-config", 10000);
@@ -602,7 +675,15 @@ export default function SettingsView() {
             {s ? (
               <>
                 <ConfigRow label="Company Name" value={s.system.companyName} icon={<Globe size={13} />} />
-                <ConfigRow label="Workspace" value={s.system.workspace} icon={<FolderOpen size={13} />} />
+                <EditablePathRow
+                  label="Workspace"
+                  value={s.system.workspace}
+                  icon={<FolderOpen size={13} />}
+                  onSave={async (newPath) => {
+                    await postApi(apiUrl("/api/workspace"), { path: newPath });
+                    refreshSettings();
+                  }}
+                />
                 <ConfigRow label="CLI Enabled" value={s.system.cliEnabled} />
                 <ConfigRow label="PM Proactive Loop" value={s.proactive.enabled} />
                 {s.proactive.enabled && (

@@ -381,11 +381,13 @@ async function startServer(doStartupReset: boolean): Promise<void> {
   // 4. Create PM agent first (needs specialist registry for message routing)
   //    Then build AgentRuntime which creates all specialists from roster.
   //    AgentRuntime.allAgents is the shared Map used by dashboard + PM.
-  const pmAgentDeps = { ...deps, agents: new Map<string, VECAgent>() };
+  // PM tools capture deps.agents in a closure — the Map instance must be the SAME
+  // one that AgentRuntime populates, so PM can see all specialists.
+  const sharedAgentsMap = new Map<string, VECAgent>();
+  const pmAgentDeps = { ...deps, agents: sharedAgentsMap };
   const pmAgent = new PMAgent(pmAgentDeps);
-  const runtime = new AgentRuntime(deps, pmAgent);
-  // Patch PM's agent registry reference so it can route messages to specialists
-  pmAgentDeps.agents = runtime.getSpecialistRegistry();
+  // Pass sharedAgentsMap so runtime populates the same Map PM's tools reference
+  const runtime = new AgentRuntime(deps, pmAgent, sharedAgentsMap);
 
   // 6. Attach streaming output to PM agent
   attachPmStreaming(pmAgent);
@@ -438,7 +440,7 @@ async function startServer(doStartupReset: boolean): Promise<void> {
     db: ATPDatabase,
     pmQueue: MessageQueue,
     agentQueue: AgentMessageQueue,
-    agents: runtime.getSpecialistRegistry(),
+    agents: sharedAgentsMap,
   };
   releaseDueTasks(schedulerDeps); // run immediately on startup
   const schedulerHandle = setInterval(() => releaseDueTasks(schedulerDeps), 60 * 60_000);
