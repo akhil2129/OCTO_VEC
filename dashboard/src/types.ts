@@ -112,4 +112,5 @@ export interface RoleTemplateSummary {
   category: "pm" | "specialist";
   mandatory: boolean;
   default_skills: string[];
+  description: string;
 }

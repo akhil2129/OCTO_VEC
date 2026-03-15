@@ -24,7 +24,7 @@ export async function gitleaksScanFlow(ctx: FlowContext): Promise<FlowResult> {
 
   const normalizedTarget = path.resolve(absTarget);
   const normalizedWorkspace = path.resolve(config.workspace);
-  if (!normalizedTarget.startsWith(normalizedWorkspace)) {
+  if (normalizedTarget !== normalizedWorkspace && !normalizedTarget.startsWith(normalizedWorkspace + path.sep)) {
     return {
       success: false,
       summary: `Scan target "${targetPath}" resolves outside the workspace. Only workspace paths are allowed.`,

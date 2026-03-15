@@ -3,7 +3,7 @@ import {
   Plus, Trash2, Save, RefreshCw, Server, ChevronDown, ChevronRight,
   Shield, Search, MessageSquare, Cpu, Box, ExternalLink,
   Zap, Settings2, Database, Eye, Star, Check, X, Package,
-  Hash, Globe, Radio,
+  Hash, Globe, Radio, Gamepad2,
 } from "lucide-react";
 import { postApi, apiUrl } from "../hooks/useApi";
 import { usePolling } from "../hooks/useApi";
@@ -113,67 +113,53 @@ function LogoIcon({ src, fallback, size = 20 }: { src: string; fallback: React.R
   );
 }
 
-// ── Channel card ─────────────────────────────────────────────────────────────
+// ── Credential input field ────────────────────────────────────────────────────
 
-function ChannelCard({ name, logoUrl, fallbackIcon, configured, detail, color, envHint }: {
-  name: string;
-  logoUrl: string;
-  fallbackIcon: React.ReactNode;
-  configured: boolean;
-  detail?: string;
-  color: string;
-  envHint: string;
+function CredentialField({ label, placeholder, value, onChange, isSecret = true }: {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  isSecret?: boolean;
 }) {
+  const [show, setShow] = useState(false);
   return (
-    <div style={{
-      padding: "16px 18px", borderRadius: 10,
-      background: "var(--bg-card)", border: "1px solid var(--border)",
-      transition: "border-color 0.12s",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
-        <div style={{
-          width: 42, height: 42, borderRadius: 10,
-          background: configured ? `color-mix(in srgb, ${color} 10%, transparent)` : "var(--bg-tertiary)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: configured ? color : "var(--text-muted)",
-          flexShrink: 0,
-        }}>
-          <LogoIcon src={logoUrl} fallback={fallbackIcon} size={22} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
-            {name}
-          </div>
-          <div style={{
-            fontSize: 10, color: "var(--text-muted)", marginTop: 2,
-            fontFamily: "monospace", letterSpacing: "0.02em",
-          }}>
-            {envHint}
-          </div>
-        </div>
-        <span style={{
-          fontSize: 10, fontWeight: 600, padding: "4px 10px", borderRadius: 6,
-          background: configured
-            ? "color-mix(in srgb, var(--green) 10%, transparent)"
-            : "var(--bg-tertiary)",
-          color: configured ? "var(--green)" : "var(--text-muted)",
-          border: `1px solid ${configured ? "color-mix(in srgb, var(--green) 18%, transparent)" : "var(--border)"}`,
-          flexShrink: 0, letterSpacing: "0.04em",
-        }}>
-          {configured ? "CONNECTED" : "NOT SET"}
-        </span>
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+        {label}
       </div>
-      {detail && (
-        <div style={{
-          fontSize: 12, color: "var(--text-secondary)",
-          padding: "8px 12px", borderRadius: 7,
-          background: "var(--bg-tertiary)",
-          fontFamily: "monospace",
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        }}>
-          {detail}
-        </div>
-      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <input
+          type={isSecret && !show ? "password" : "text"}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          autoComplete="off"
+          spellCheck={false}
+          style={{
+            flex: 1, padding: "8px 12px", borderRadius: 8,
+            border: "1px solid var(--border)", background: "var(--bg-tertiary)",
+            color: "var(--text-primary)", fontSize: 12, fontFamily: "monospace",
+            outline: "none",
+          }}
+          onFocus={(e) => { e.target.style.borderColor = "var(--accent)"; }}
+          onBlur={(e) => { e.target.style.borderColor = "var(--border)"; }}
+        />
+        {isSecret && (
+          <button
+            onClick={() => setShow(!show)}
+            style={{
+              width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)",
+              background: "var(--bg-hover)", color: "var(--text-muted)",
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}
+            title={show ? "Hide" : "Show"}
+          >
+            <Eye size={14} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -451,6 +437,30 @@ export default function SettingsView() {
   const [toast, setToast] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
+  // Channel config (editable)
+  interface ChannelInfo { configured: boolean; connected: boolean; botToken: string | null; chatId?: string | null; appToken?: string | null; channelId?: string | null }
+  const [channelCfg, setChannelCfg] = useState<{ telegram: ChannelInfo; slack: ChannelInfo; discord: ChannelInfo } | null>(null);
+  const [editingChannel, setEditingChannel] = useState<"telegram" | "slack" | "discord" | null>(null);
+  const [chFields, setChFields] = useState<Record<string, string>>({});
+  const [chTesting, setChTesting] = useState(false);
+  const [chTestResult, setChTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [chSaving, setChSaving] = useState(false);
+
+  const fetchChannels = useCallback(async () => {
+    try {
+      const res = await fetch(apiUrl("/api/channel-config")).then(r => r.json());
+      setChannelCfg(res);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { fetchChannels(); }, [fetchChannels]);
+
+  // Refresh channels periodically
+  useEffect(() => {
+    const h = setInterval(fetchChannels, 8000);
+    return () => clearInterval(h);
+  }, [fetchChannels]);
+
   const fetchMCP = useCallback(async () => {
     try {
       const [cfgRes, statusRes] = await Promise.all([
@@ -553,7 +563,7 @@ export default function SettingsView() {
   // ── Count stats for sidebar badges ────────────────────────────────────────
 
   const configuredProviders = modelData?.providers.filter(p => p.configured).length ?? 0;
-  const channelCount = [integ?.telegram.configured, integ?.slack?.configured].filter(Boolean).length;
+  const channelCount = [channelCfg?.telegram.configured, channelCfg?.slack.configured, channelCfg?.discord.configured].filter(Boolean).length;
   const integCount = [integ?.searxng.configured, integ?.sonarqube.configured, integ?.gitleaks.configured, integ?.semgrep.configured, integ?.trivy.configured].filter(Boolean).length;
   const connectedServers = mcpStatus.servers.filter(s => s.connected).length;
 
@@ -752,6 +762,297 @@ export default function SettingsView() {
     );
   }
 
+  function openChannelEdit(ch: "telegram" | "slack" | "discord") {
+    setEditingChannel(ch);
+    setChFields({});
+    setChTestResult(null);
+  }
+
+  function closeChannelEdit() {
+    setEditingChannel(null);
+    setChFields({});
+    setChTestResult(null);
+  }
+
+  async function testChannel() {
+    if (!editingChannel) return;
+    setChTesting(true);
+    setChTestResult(null);
+    try {
+      const body: Record<string, string> = { channel: editingChannel };
+      body.botToken = chFields.botToken ?? "";
+      if (editingChannel === "slack") {
+        body.appToken = chFields.appToken ?? "";
+      }
+      const res = await postApi("/api/channel-test", body);
+      setChTestResult(res.ok
+        ? { ok: true, msg: `Connected as "${res.botName}"` }
+        : { ok: false, msg: res.error ?? "Test failed" });
+    } catch {
+      setChTestResult({ ok: false, msg: "Connection failed" });
+    } finally {
+      setChTesting(false);
+    }
+  }
+
+  async function saveChannel() {
+    if (!editingChannel) return;
+    setChSaving(true);
+    try {
+      const body: Record<string, string> = { channel: editingChannel };
+      body.botToken = chFields.botToken ?? "";
+      if (editingChannel === "telegram") {
+        body.chatId = chFields.chatId ?? "";
+      } else if (editingChannel === "slack") {
+        body.appToken = chFields.appToken ?? "";
+        body.channelId = chFields.channelId ?? "";
+      } else {
+        body.channelId = chFields.channelId ?? "";
+      }
+      const res = await postApi("/api/channel-config", body);
+      if (res.ok) {
+        // Auto-restart after save
+        await postApi("/api/channel-restart", { channel: editingChannel });
+        await fetchChannels();
+        closeChannelEdit();
+        const labels: Record<string, string> = { telegram: "Telegram", slack: "Slack", discord: "Discord" };
+        showToast(`${labels[editingChannel] ?? editingChannel} connected`);
+      } else {
+        showToast(res.error ?? "Save failed");
+      }
+    } catch {
+      showToast("Save failed");
+    } finally {
+      setChSaving(false);
+    }
+  }
+
+  async function disconnectChannel(ch: "telegram" | "slack" | "discord") {
+    try {
+      const labels: Record<string, string> = { telegram: "Telegram", slack: "Slack", discord: "Discord" };
+      await postApi("/api/channel-disconnect", { channel: ch });
+      await fetchChannels();
+      showToast(`${labels[ch] ?? ch} disconnected`);
+    } catch {
+      showToast("Disconnect failed");
+    }
+  }
+
+  function renderChannelEditCard(
+    ch: "telegram" | "slack" | "discord",
+    info: ChannelInfo | undefined,
+    label: string,
+    logoUrl: string,
+    fallbackIcon: React.ReactNode,
+    color: string,
+  ) {
+    const isEditing = editingChannel === ch;
+    const configured = info?.configured ?? false;
+    const connected = info?.connected ?? false;
+
+    return (
+      <div style={{
+        padding: "18px 20px", borderRadius: 12,
+        background: "var(--bg-card)", border: `1px solid ${isEditing ? color : "var(--border)"}`,
+        transition: "border-color 0.15s",
+      }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: isEditing ? 16 : 0 }}>
+          <div style={{
+            width: 42, height: 42, borderRadius: 10,
+            background: configured ? `color-mix(in srgb, ${color} 10%, transparent)` : "var(--bg-tertiary)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: configured ? color : "var(--text-muted)", flexShrink: 0,
+          }}>
+            <LogoIcon src={logoUrl} fallback={fallbackIcon} size={22} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{label}</div>
+            {configured && !isEditing && (
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                {ch === "telegram" ? `Chat ID: ${info?.chatId ?? ""}` : `Channel: ${info?.channelId ?? ""}`}
+
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Status dot */}
+            {configured && (
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <div style={{
+                  width: 7, height: 7, borderRadius: "50%",
+                  background: connected ? "var(--green)" : "var(--red)",
+                  boxShadow: connected ? "0 0 6px var(--green)" : "none",
+                }} />
+                <span style={{ fontSize: 10, fontWeight: 500, color: connected ? "var(--green)" : "var(--red)" }}>
+                  {connected ? "Online" : "Offline"}
+                </span>
+              </div>
+            )}
+            {/* Status badge */}
+            <span style={{
+              fontSize: 10, fontWeight: 600, padding: "4px 10px", borderRadius: 6,
+              background: configured
+                ? "color-mix(in srgb, var(--green) 10%, transparent)"
+                : "var(--bg-tertiary)",
+              color: configured ? "var(--green)" : "var(--text-muted)",
+              border: `1px solid ${configured ? "color-mix(in srgb, var(--green) 18%, transparent)" : "var(--border)"}`,
+              flexShrink: 0, letterSpacing: "0.04em",
+            }}>
+              {configured ? "CONFIGURED" : "NOT SET"}
+            </span>
+          </div>
+        </div>
+
+        {/* Action buttons (when not editing) */}
+        {!isEditing && (
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button
+              onClick={() => openChannelEdit(ch)}
+              style={{
+                padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 500,
+                border: "1px solid var(--border)", background: "var(--bg-hover)",
+                color: "var(--text-primary)", cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              {configured ? "Update" : "Configure"}
+            </button>
+            {configured && (
+              <button
+                onClick={() => disconnectChannel(ch)}
+                style={{
+                  padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 500,
+                  border: "1px solid color-mix(in srgb, var(--red) 30%, transparent)",
+                  background: "color-mix(in srgb, var(--red) 8%, transparent)",
+                  color: "var(--red)", cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                Disconnect
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Edit form */}
+        {isEditing && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {ch === "telegram" ? (
+              <>
+                <CredentialField
+                  label="Bot Token"
+                  placeholder="Paste your bot token from @BotFather"
+                  value={chFields.botToken ?? ""}
+                  onChange={(v) => setChFields(f => ({ ...f, botToken: v }))}
+                />
+                <CredentialField
+                  label="Chat ID"
+                  placeholder="Your authorized chat ID"
+                  value={chFields.chatId ?? ""}
+                  onChange={(v) => setChFields(f => ({ ...f, chatId: v }))}
+                  isSecret={false}
+                />
+              </>
+            ) : ch === "slack" ? (
+              <>
+                <CredentialField
+                  label="Bot Token"
+                  placeholder="xoxb-..."
+                  value={chFields.botToken ?? ""}
+                  onChange={(v) => setChFields(f => ({ ...f, botToken: v }))}
+                />
+                <CredentialField
+                  label="App Token"
+                  placeholder="xapp-..."
+                  value={chFields.appToken ?? ""}
+                  onChange={(v) => setChFields(f => ({ ...f, appToken: v }))}
+                />
+                <CredentialField
+                  label="Channel ID"
+                  placeholder="C0123456789"
+                  value={chFields.channelId ?? ""}
+                  onChange={(v) => setChFields(f => ({ ...f, channelId: v }))}
+                  isSecret={false}
+                />
+              </>
+            ) : (
+              <>
+                <CredentialField
+                  label="Bot Token"
+                  placeholder="Paste your bot token from Discord Developer Portal"
+                  value={chFields.botToken ?? ""}
+                  onChange={(v) => setChFields(f => ({ ...f, botToken: v }))}
+                />
+                <CredentialField
+                  label="Channel ID"
+                  placeholder="Right-click channel → Copy Channel ID"
+                  value={chFields.channelId ?? ""}
+                  onChange={(v) => setChFields(f => ({ ...f, channelId: v }))}
+                  isSecret={false}
+                />
+              </>
+            )}
+
+            {/* Test result */}
+            {chTestResult && (
+              <div style={{
+                padding: "8px 12px", borderRadius: 8, fontSize: 12,
+                background: chTestResult.ok
+                  ? "color-mix(in srgb, var(--green) 8%, transparent)"
+                  : "color-mix(in srgb, var(--red) 8%, transparent)",
+                color: chTestResult.ok ? "var(--green)" : "var(--red)",
+                border: `1px solid ${chTestResult.ok
+                  ? "color-mix(in srgb, var(--green) 20%, transparent)"
+                  : "color-mix(in srgb, var(--red) 20%, transparent)"}`,
+                display: "flex", alignItems: "center", gap: 8,
+              }}>
+                {chTestResult.ok ? <Check size={14} /> : <X size={14} />}
+                {chTestResult.msg}
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+              <button
+                onClick={testChannel}
+                disabled={chTesting || !(chFields.botToken)}
+                style={{
+                  padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 500,
+                  border: "1px solid var(--border)", background: "var(--bg-hover)",
+                  color: "var(--text-primary)", cursor: chTesting ? "wait" : "pointer",
+                  fontFamily: "inherit", opacity: chTesting || !chFields.botToken ? 0.5 : 1,
+                }}
+              >
+                {chTesting ? "Testing..." : "Test Connection"}
+              </button>
+              <button
+                onClick={saveChannel}
+                disabled={chSaving || !(chFields.botToken)}
+                style={{
+                  padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                  border: "none", background: color, color: "#fff",
+                  cursor: chSaving ? "wait" : "pointer", fontFamily: "inherit",
+                  opacity: chSaving || !chFields.botToken ? 0.5 : 1,
+                }}
+              >
+                {chSaving ? "Saving..." : "Save & Connect"}
+              </button>
+              <button
+                onClick={closeChannelEdit}
+                style={{
+                  padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 500,
+                  border: "1px solid var(--border)", background: "transparent",
+                  color: "var(--text-muted)", cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   function renderChannels() {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -771,7 +1072,7 @@ export default function SettingsView() {
             background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8,
           }}>
             <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text-muted)", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-              {2 - channelCount}
+              {3 - channelCount}
             </div>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Not Configured</div>
           </div>
@@ -780,37 +1081,11 @@ export default function SettingsView() {
         {/* Channel cards */}
         <div>
           <SectionLabel title="Communication Channels" />
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <ChannelCard
-              name="Telegram"
-              logoUrl="/icons/integrations/telegram.svg"
-              fallbackIcon={<MessageSquare size={18} />}
-              configured={integ?.telegram.configured ?? false}
-              detail={integ?.telegram.configured ? `Chat ID: ${integ.telegram.chatId}` : undefined}
-              color="var(--blue)"
-              envHint="TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID"
-            />
-            <ChannelCard
-              name="Slack"
-              logoUrl="/icons/integrations/slack.svg"
-              fallbackIcon={<Hash size={18} />}
-              configured={integ?.slack?.configured ?? false}
-              detail={integ?.slack?.configured ? `Channel: ${integ.slack.channelId}` : undefined}
-              color="var(--purple)"
-              envHint="SLACK_BOT_TOKEN + SLACK_APP_TOKEN + SLACK_CHANNEL_ID"
-            />
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {renderChannelEditCard("telegram", channelCfg?.telegram, "Telegram", "/icons/integrations/telegram.svg", <MessageSquare size={18} />, "var(--blue)")}
+            {renderChannelEditCard("slack", channelCfg?.slack, "Slack", "/icons/integrations/slack.svg", <Hash size={18} />, "var(--purple)")}
+            {renderChannelEditCard("discord", channelCfg?.discord, "Discord", "/icons/integrations/discord.svg", <Gamepad2 size={18} />, "#5865F2")}
           </div>
-        </div>
-
-        <div style={{
-          padding: "14px 16px", borderRadius: 8,
-          background: "var(--bg-tertiary)", border: "1px solid var(--border)",
-          fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6,
-        }}>
-          Channels are configured via environment variables in your <code style={{
-            fontFamily: "monospace", fontSize: 11, background: "var(--bg-card)",
-            padding: "1px 5px", borderRadius: 3,
-          }}>.env</code> file. Restart the server after making changes.
         </div>
       </div>
     );

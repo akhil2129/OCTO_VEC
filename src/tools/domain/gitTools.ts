@@ -12,7 +12,7 @@
 
 import { execFileSync } from "child_process";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
-import { join, resolve, normalize } from "path";
+import { join, resolve, normalize, sep } from "path";
 import { Type } from "@mariozechner/pi-ai";
 import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { projectsWorkspace } from "../../config.js";
@@ -30,7 +30,7 @@ function ok(text: string) {
  */
 function resolveProjectDir(project: string): string {
   const resolved = resolve(projectsWorkspace, normalize(project));
-  if (!resolved.startsWith(projectsWorkspace)) {
+  if (resolved !== projectsWorkspace && !resolved.startsWith(projectsWorkspace + sep)) {
     throw new Error(`Path traversal blocked: '${project}' resolves outside projects/`);
   }
   return resolved;
@@ -291,6 +291,6 @@ export function getProjectDirFromFolderAccess(folderAccess: string): string | nu
   const normalized = normalize(folderAccess);
   if (!normalized.startsWith("projects")) return null;
   const resolved = resolve(projectsWorkspace, "..", normalized);
-  if (!resolved.startsWith(projectsWorkspace)) return null;
+  if (resolved !== projectsWorkspace && !resolved.startsWith(projectsWorkspace + sep)) return null;
   return resolved;
 }

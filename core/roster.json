@@ -21,7 +21,8 @@
         "risk-management",
         "communication"
       ],
-      "mandatory": true
+      "mandatory": true,
+      "description": "Leads project planning, task delegation, and team coordination. Manages timelines, tracks progress across all agents, handles risk assessment, and serves as the primary point of contact for user requests."
     },
     "architect": {
       "role": "Solutions Architect",
@@ -39,7 +40,8 @@
         "database-schema",
         "api-design",
         "tech-stack"
-      ]
+      ],
+      "description": "Designs system architecture, defines tech stack decisions, and creates database schemas. Reviews API contracts, evaluates scalability patterns, and ensures technical consistency across the codebase."
     },
     "ba": {
       "role": "Business Analyst",
@@ -58,7 +60,8 @@
         "gap-analysis",
         "kpis",
         "process-mapping"
-      ]
+      ],
+      "description": "Gathers and documents business requirements, writes user stories, and performs gap analysis. Defines KPIs, maps business processes, and bridges communication between stakeholders and the engineering team."
     },
     "researcher": {
       "role": "Research Specialist",
@@ -76,7 +79,8 @@
         "best-practices",
         "security-research",
         "comparative-analysis"
-      ]
+      ],
+      "description": "Conducts technology research, evaluates libraries and frameworks, and performs comparative analysis. Investigates best practices, security advisories, and emerging trends to inform engineering decisions."
     },
     "developer": {
       "role": "Senior Developer",
@@ -100,7 +104,8 @@
         "unit-testing",
         "debugging",
         "refactoring"
-      ]
+      ],
+      "description": "Writes production-quality code in Python, JavaScript, and TypeScript. Handles feature implementation, debugging, code reviews, unit testing, and refactoring across the full stack."
     },
     "qa": {
       "role": "QA Engineer",
@@ -120,7 +125,8 @@
         "test-cases",
         "bug-reporting",
         "coverage-analysis"
-      ]
+      ],
+      "description": "Creates test plans and test cases, executes manual and automated testing, and reports bugs with detailed reproduction steps. Performs coverage analysis and ensures software quality before releases."
     },
     "security": {
       "role": "Security Engineer",
@@ -140,7 +146,8 @@
         "dependency-audit",
         "code-security",
         "owasp"
-      ]
+      ],
+      "description": "Performs vulnerability scanning, dependency audits, and code security reviews. Enforces OWASP best practices, identifies attack vectors, and recommends security hardening measures across the application."
     },
     "devops": {
       "role": "DevOps Engineer",
@@ -163,7 +170,8 @@
         "deployment",
         "monitoring",
         "infrastructure"
-      ]
+      ],
+      "description": "Builds and maintains CI/CD pipelines, manages Docker containers and Kubernetes clusters. Handles deployment automation, infrastructure provisioning, and monitoring/alerting configuration."
     },
     "techwriter": {
       "role": "Technical Writer",
@@ -182,7 +190,8 @@
         "user-guides",
         "deployment-guides",
         "changelogs"
-      ]
+      ],
+      "description": "Writes API documentation, README files, user guides, and deployment guides. Maintains changelogs, creates onboarding materials, and ensures all technical documentation stays current and accurate."
     },
     "frontend": {
       "role": "Frontend Developer",
@@ -205,7 +214,8 @@
         "accessibility",
         "responsive-design",
         "component-architecture"
-      ]
+      ],
+      "description": "Builds user interfaces with React and Vue.js, implements responsive designs, and creates reusable component architectures. Ensures accessibility compliance and optimizes frontend performance."
     },
     "backend": {
       "role": "Backend Developer",
@@ -229,7 +239,8 @@
         "microservices",
         "database-design",
         "caching"
-      ]
+      ],
+      "description": "Develops server-side applications with Node.js and Python. Builds REST and GraphQL APIs, designs microservice architectures, implements database schemas, and optimizes caching strategies."
     },
     "mobile": {
       "role": "Mobile Developer",
@@ -252,7 +263,8 @@
         "android",
         "mobile-ui",
         "offline-first"
-      ]
+      ],
+      "description": "Develops cross-platform mobile applications with React Native and Flutter. Builds native iOS and Android features, implements mobile-optimized UIs, and designs offline-first data architectures."
     },
     "dataengineer": {
       "role": "Data Engineer",
@@ -275,7 +287,8 @@
         "spark",
         "kafka",
         "data-modeling"
-      ]
+      ],
+      "description": "Builds ETL pipelines, designs data warehouses, and implements data models. Works with Spark and Kafka for large-scale data processing, writes complex SQL queries, and ensures data quality and integrity."
     },
     "dba": {
       "role": "Database Administrator",
@@ -298,7 +311,8 @@
         "indexing",
         "postgresql",
         "mongodb"
-      ]
+      ],
+      "description": "Manages database systems including PostgreSQL and MongoDB. Designs schemas, optimizes queries, plans migrations, creates indexes, and ensures database performance, reliability, and backup strategies."
     },
     "mlengineer": {
       "role": "ML/AI Engineer",
@@ -321,7 +335,8 @@
         "pytorch",
         "model-training",
         "mlops"
-      ]
+      ],
+      "description": "Develops machine learning and deep learning models using PyTorch. Specializes in NLP, model training and evaluation, feature engineering, and MLOps pipelines for production deployment."
     },
     "sre": {
       "role": "Site Reliability Engineer",
@@ -344,7 +359,8 @@
         "slo-sla",
         "runbooks",
         "chaos-engineering"
-      ]
+      ],
+      "description": "Ensures system reliability through monitoring, alerting, and incident response. Defines SLOs/SLAs, writes runbooks, conducts chaos engineering experiments, and drives post-incident reviews."
     },
     "productowner": {
       "role": "Product Owner",
@@ -363,7 +379,8 @@
         "backlog-management",
         "roadmapping",
         "prioritization"
-      ]
+      ],
+      "description": "Defines product strategy, writes user stories, and manages the product backlog. Creates roadmaps, prioritizes features based on business value, and aligns development with product vision."
     },
     "designer": {
       "role": "UI/UX Designer",
@@ -382,7 +399,8 @@
         "user-research",
         "design-systems",
         "accessibility"
-      ]
+      ],
+      "description": "Creates wireframes, prototypes, and design systems. Conducts user research, defines interaction patterns, ensures accessibility standards, and establishes visual design guidelines for the product."
     },
     "scrummaster": {
       "role": "Scrum Master",
@@ -402,7 +420,8 @@
         "retrospectives",
         "impediment-removal",
         "kanban"
-      ]
+      ],
+      "description": "Facilitates Agile ceremonies including sprint planning, standups, and retrospectives. Removes impediments, coaches the team on Scrum and Kanban practices, and tracks sprint velocity."
     },
     "dataanalyst": {
       "role": "Data Analyst",
@@ -422,7 +441,8 @@
         "reporting",
         "kpi-analysis",
         "business-intelligence"
-      ]
+      ],
+      "description": "Analyzes data using SQL and visualization tools. Creates dashboards, generates reports, tracks KPI metrics, and delivers business intelligence insights to support data-driven decision making."
     },
     "releasemanager": {
       "role": "Release Manager",
@@ -444,7 +464,8 @@
         "changelog-management",
         "deployment-planning",
         "git-workflows"
-      ]
+      ],
+      "description": "Coordinates release cycles, manages semantic versioning, and maintains changelogs. Plans deployments, defines git workflows, and ensures smooth transitions from development to production."
     },
     "compliance": {
       "role": "Compliance Officer",
@@ -465,7 +486,8 @@
         "audit-trails",
         "data-privacy",
         "risk-assessment"
-      ]
+      ],
+      "description": "Ensures regulatory compliance with GDPR, SOC 2, and HIPAA. Writes policies, manages audit trails, assesses data privacy risks, and conducts compliance reviews across the organization."
     },
     "support": {
       "role": "Support Engineer",
@@ -486,7 +508,8 @@
         "log-analysis",
         "root-cause-analysis",
         "escalation"
-      ]
+      ],
+      "description": "Troubleshoots production issues, debugs application errors, and performs log analysis. Conducts root cause analysis, manages escalation procedures, and maintains support documentation."
     }
   },
   "agents": [

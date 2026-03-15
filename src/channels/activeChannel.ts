@@ -7,7 +7,7 @@
  *   - cli       → reply goes to CLI + Dashboard Teams (default)
  */
 
-export type ActiveChannel = "cli" | "telegram" | "dashboard" | "slack";
+export type ActiveChannel = "cli" | "telegram" | "dashboard" | "slack" | "discord";
 
 let _current: ActiveChannel = "cli";
 

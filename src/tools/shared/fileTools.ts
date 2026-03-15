@@ -171,9 +171,12 @@ function extractPathTokens(command: string): string[] {
  * Allowed: workspace (+ all subdirs), agent's own memory dir.
  */
 function isBashPathAllowed(resolved: string, allowedRoots: string[]): boolean {
-  const norm = resolved.replace(/\\/g, "/").toLowerCase();
+  // Normalize separators for cross-platform comparison.
+  // On Windows, use case-insensitive comparison; on Linux/Mac, preserve case.
+  const isWin = process.platform === "win32";
+  const norm = isWin ? resolved.replace(/\\/g, "/").toLowerCase() : resolved;
   for (const root of allowedRoots) {
-    const normRoot = root.replace(/\\/g, "/").toLowerCase();
+    const normRoot = isWin ? root.replace(/\\/g, "/").toLowerCase() : root;
     if (norm === normRoot || norm.startsWith(normRoot + "/")) return true;
   }
   return false;

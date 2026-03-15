@@ -1,13 +1,17 @@
+#!/usr/bin/env node
 /**
  * TOWER — VEC entry point.
  * Initialises all infrastructure, creates agents, starts inbox loops,
- * and runs an interactive readline loop for the founder (Akhil) to talk to the PM.
+ * and runs an interactive readline loop for the founder to talk to the PM.
  */
 
 import readline from "readline";
 import fs from "fs";
 
-import { config, sharedWorkspace, agentWorkspace, getWorkspaceDirs } from "./config.js";
+import { config, USER_DATA_DIR, sharedWorkspace, agentWorkspace, getWorkspaceDirs } from "./config.js";
+import { initUserDataDir } from "./init.js";
+import { runOnboardingIfNeeded } from "./onboarding.js";
+import { runMigration } from "./migrate.js";
 import { getAllAgentIds } from "./ar/roster.js";
 import { AgentRuntime } from "./atp/agentRuntime.js";
 import { founder } from "./identity.js";
@@ -25,10 +29,10 @@ import { PMAgent } from "./agents/pmAgent.js";
 import { startDashboardServer } from "./dashboard/server.js";
 import { releaseDueTasks } from "./tools/pm/taskTools.js";
 import { AgentInterrupt } from "./atp/agentInterrupt.js";
-import { createTelegramChannel } from "./channels/telegram.js";
-import { createSlackChannel } from "./channels/slack.js";
 import { getActiveGroupForAgent, markActiveGroupConversation } from "./atp/agentGroups.js";
 import { ActiveChannelState } from "./channels/activeChannel.js";
+import { channelManager } from "./channels/channelManager.js";
+import { injectChannelEnv } from "./channels/channelConfig.js";
 import { UserChatLog } from "./atp/chatLog.js";
 import { clearAgentHistory } from "./memory/messageHistory.js";
 import { shouldRunSunset } from "./memory/sessionLifecycle.js";
@@ -55,6 +59,7 @@ function printBanner(): void {
     `  LLM Debug: ${config.debugLlm ? `ON (stall>${config.debugLlmStallSecs}s)` : "OFF (set VEC_DEBUG_LLM=1)"
     }`
   );
+  console.log(`  Data Dir : ${USER_DATA_DIR}`);
   console.log(`  Workspace: ${config.workspace}`);
   console.log(`    Shared : workspace/shared/         (cross-agent deliverables)`);
   console.log(`    Agents : workspace/agents/{EMP-ID}/ (per-agent private folders)`);
@@ -64,6 +69,8 @@ function printBanner(): void {
   console.log(`  Telegram : ${tgChatId ? `active (chat ${tgChatId})` : "disabled (set TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID to enable)"}`);
   const slackCh = process.env.SLACK_CHANNEL_ID;
   console.log(`  Slack    : ${slackCh ? `active (channel ${slackCh})` : "disabled (set SLACK_BOT_TOKEN + SLACK_APP_TOKEN + SLACK_CHANNEL_ID to enable)"}`);
+  const discordCh = process.env.DISCORD_CHANNEL_ID;
+  console.log(`  Discord  : ${discordCh ? `active (channel ${discordCh})` : "disabled (set DISCORD_BOT_TOKEN + DISCORD_CHANNEL_ID to enable)"}`);
   console.log(`  CLI      : ${config.cliEnabled ? "ON" : "OFF (headless — set VEC_CLI_ENABLED=1 to enable)"}`);
   if (config.cliEnabled) {
     console.log("  /board   — Task board (SQLite)");
@@ -204,6 +211,18 @@ function startLiveMonitor(): { toggle: () => boolean; interval: NodeJS.Timeout }
 // ── Main ───────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
+  // 0. Handle --migrate flag before anything else
+  if (process.argv.slice(2).some((a) => a === "--migrate" || a === "migrate")) {
+    await runMigration();
+    process.exit(0);
+  }
+
+  // 0b. First-run onboarding (creates ITS_ME.md if missing)
+  await runOnboardingIfNeeded();
+
+  // 0c. Bootstrap user data directory (creates dirs + seeds roster.json)
+  initUserDataDir();
+
   // 1. Ensure all data/memory/workspace directories exist
   ensureDirs();
 
@@ -328,13 +347,9 @@ async function main(): Promise<void> {
   // 9. Start dashboard HTTP server
   startDashboardServer(runtime);
 
-  // 10. Start Telegram channel (optional — requires TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID)
-  const telegram = createTelegramChannel(pmAgent);
-  if (telegram) await telegram.start();
-
-  // 10b. Start Slack channel (optional — requires SLACK_BOT_TOKEN + SLACK_APP_TOKEN + SLACK_CHANNEL_ID)
-  const slack = createSlackChannel(pmAgent);
-  if (slack) await slack.start();
+  // 10. Inject saved channel credentials and start channels
+  injectChannelEnv();
+  await channelManager.initChannels(pmAgent);
 
   // 11. User inbox forwarder — delivers messages sent to 'user' by PM (or other agents)
   //     to the CLI console and, if active, to the Telegram channel.
@@ -373,17 +388,23 @@ async function main(): Promise<void> {
         markActiveGroupConversation(activeGroup.id, activeGroup.members);
       } else {
         // Normal individual reply — route to origin channel
-        if (ch !== "telegram" && ch !== "slack") {
+        if (ch !== "telegram" && ch !== "slack" && ch !== "discord") {
           UserChatLog.log({ from: msg.from_agent, to: "user", message: msg.message, channel: "agent" });
         }
       }
 
       // Route reply to origin channel (for both individual and group)
-      if (telegram && ch === "telegram") {
-        await telegram.sendToUser(line).catch(() => { });
+      const tg = channelManager.getChannel("telegram");
+      if (tg && ch === "telegram") {
+        await tg.sendToUser(line).catch(() => { });
       }
-      if (slack && ch === "slack") {
-        await slack.sendToUser(line).catch(() => { });
+      const sl = channelManager.getChannel("slack");
+      if (sl && ch === "slack") {
+        await sl.sendToUser(line).catch(() => { });
+      }
+      const dc = channelManager.getChannel("discord");
+      if (dc && ch === "discord") {
+        await dc.sendToUser(line).catch(() => { });
       }
     }
   }, 5_000);
@@ -394,7 +415,7 @@ async function main(): Promise<void> {
 
   // 13. Interactive readline loop (skipped in headless mode)
   if (!config.cliEnabled) {
-    console.log("  Running in headless mode. Use dashboard, Telegram, or Slack to interact.\n");
+    console.log("  Running in headless mode. Use dashboard, Telegram, Slack, or Discord to interact.\n");
     return;
   }
 

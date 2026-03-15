@@ -27,7 +27,7 @@ export async function codeScanFlow(ctx: FlowContext): Promise<FlowResult> {
   // Safety: ensure the target is inside the workspace — never scan our own source
   const normalizedTarget = path.resolve(absTarget);
   const normalizedWorkspace = path.resolve(config.workspace);
-  if (!normalizedTarget.startsWith(normalizedWorkspace)) {
+  if (normalizedTarget !== normalizedWorkspace && !normalizedTarget.startsWith(normalizedWorkspace + path.sep)) {
     return {
       success: false,
       summary: `Scan target "${targetPath}" resolves outside the workspace. Only workspace paths are allowed.`,
@@ -78,6 +78,7 @@ export async function codeScanFlow(ctx: FlowContext): Promise<FlowResult> {
     scanOutput = execSync(scannerCmd, {
       encoding: "utf-8",
       timeout: 180_000, // 3 min for large projects
+      env: { ...process.env, MSYS_NO_PATHCONV: "1" },
     });
   } catch (err: any) {
     scanFailed = true;
@@ -86,15 +87,16 @@ export async function codeScanFlow(ctx: FlowContext): Promise<FlowResult> {
 
   // ── 5. Fetch results from SonarQube Web API ─────────────────────────────
   const externalUrl = config.sonarHostUrl;
-  const authHeader = `Authorization: Basic ${Buffer.from(`${token}:`).toString("base64")}`;
+  const authHeaderValue = `Basic ${Buffer.from(`${token}:`).toString("base64")}`;
 
-  function sonarFetch(apiPath: string): any {
+  async function sonarFetch(apiPath: string): Promise<any> {
     try {
-      const raw = execSync(
-        `curl -s -H "${authHeader}" "${externalUrl}${apiPath}"`,
-        { encoding: "utf-8", timeout: 30_000 },
-      );
-      return JSON.parse(raw);
+      const res = await fetch(`${externalUrl}${apiPath}`, {
+        headers: { Authorization: authHeaderValue },
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!res.ok) return null;
+      return await res.json();
     } catch {
       return null;
     }
@@ -105,10 +107,10 @@ export async function codeScanFlow(ctx: FlowContext): Promise<FlowResult> {
     await new Promise((r) => setTimeout(r, 5000));
   }
 
-  const issuesData = sonarFetch(
+  const issuesData = await sonarFetch(
     `/api/issues/search?componentKeys=${projectKey}&resolved=false&ps=50&facets=severities,types`,
   );
-  const measuresData = sonarFetch(
+  const measuresData = await sonarFetch(
     `/api/measures/component?component=${projectKey}&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density,ncloc,security_hotspots`,
   );
 

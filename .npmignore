@@ -1,0 +1,51 @@
+# Source (compiled output in dist/ is what ships)
+src/
+tsconfig.json
+tsconfig.build.json
+
+# Runtime data (user-specific, lives in ~/.octo-vec)
+data/
+memory/
+workspace/
+
+# Dashboard source (only dashboard/dist/ ships)
+dashboard/src/
+dashboard/node_modules/
+dashboard/tsconfig.json
+dashboard/tsconfig.node.json
+dashboard/vite.config.ts
+dashboard/tailwind.config.js
+dashboard/postcss.config.js
+dashboard/index.html
+dashboard/package.json
+dashboard/package-lock.json
+dashboard/.eslintrc*
+dashboard/components.json
+
+# Dev / personal files
+tests/
+TO-DOs/
+docker/
+landing/
+.env
+.env.*
+*.env
+ITS_ME.md
+self.md
+
+# Git / IDE
+.git/
+.gitignore
+.github/
+.claude/
+.pi/
+.vscode/
+
+# Build artifacts that shouldn't ship
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+# Node
+node_modules/

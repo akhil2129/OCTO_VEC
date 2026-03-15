@@ -1,14 +1,32 @@
 {
-  "name": "vec-atp",
+  "name": "octo-vec",
   "version": "1.0.0",
-  "description": "VEC - Virtual Employed Company | Agent Task Portal",
+  "description": "OCTO VEC — Virtual Employed Company | AI Agent Orchestration Platform",
   "type": "module",
+  "main": "./dist/tower.js",
+  "bin": {
+    "vec": "./dist/tower.js"
+  },
+  "exports": {
+    ".": "./dist/tower.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "dist/",
+    "core/",
+    "dashboard/dist/"
+  ],
   "scripts": {
     "start": "tsx src/tower.ts",
     "dev": "tsx --watch src/tower.ts",
-    "dashboard:install": "cd dashboard && npm install",
-    "dashboard:dev": "cd dashboard && npm run dev",
-    "dashboard:build": "cd dashboard && npm install && npm run build"
+    "typecheck": "tsc --noEmit",
+    "build:ts": "tsc -p tsconfig.build.json",
+    "build:dashboard": "npm --prefix dashboard install && npm --prefix dashboard run build",
+    "build": "npm run build:ts && npm run build:dashboard",
+    "prepublishOnly": "npm run build",
+    "dashboard:dev": "npm --prefix dashboard run dev"
   },
   "dependencies": {
     "@mariozechner/pi-agent-core": "^0.53.1",
@@ -18,6 +36,7 @@
     "@slack/bolt": "^4.6.0",
     "better-sqlite3": "^9.6.0",
     "cors": "^2.8.6",
+    "discord.js": "^14.25.1",
     "dotenv": "^17.3.1",
     "express": "^4.21.0",
     "express-rate-limit": "^8.3.1",

@@ -10,9 +10,9 @@
 import { getOAuthApiKey } from "@mariozechner/pi-ai";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { PROJECT_ROOT, config } from "../config.js";
+import { config } from "../config.js";
 
-const CREDS_PATH = join(PROJECT_ROOT, "data", "codex-oauth.json");
+const CREDS_PATH = join(config.dataDir, "codex-oauth.json");
 
 function loadCreds(): Record<string, any> {
   if (!existsSync(CREDS_PATH)) {

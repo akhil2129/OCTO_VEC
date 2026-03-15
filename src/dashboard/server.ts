@@ -19,14 +19,11 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { existsSync, readFileSync, writeFileSync } from "fs";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
-import { config } from "../config.js";
+import { join } from "path";
+import { config, PACKAGE_ROOT } from "../config.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-// React build output — dashboard/dist/ relative to repo root
-const REACT_DIST = join(__dirname, "../../dashboard/dist");
+// React build output — relative to package root (works both in dev and npm global install)
+const REACT_DIST = join(PACKAGE_ROOT, "dashboard", "dist");
 import { ATPDatabase } from "../atp/database.js";
 import { EventLog } from "../atp/eventLog.js";
 import { MessageQueue } from "../atp/messageQueue.js";
@@ -44,6 +41,8 @@ import { ActiveChannelState } from "../channels/activeChannel.js";
 import type { VECAgent } from "../atp/inboxLoop.js";
 import { getAllUsage as getFinanceAllUsage, getTotals as getFinanceTotals, resetUsage as resetFinanceUsage } from "../atp/tokenTracker.js";
 import { getProviders, getModelConfig, setModelConfig, setAgentModel, getEffectiveModel, setProviderApiKey } from "../atp/modelConfig.js";
+import { saveChannelCredentials, getChannelConfigMasked } from "../channels/channelConfig.js";
+import { channelManager } from "../channels/channelManager.js";
 import {
   apiKeyAuth,
   getDashboardApiKey,
@@ -2765,6 +2764,7 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
       category: t.category,
       mandatory: t.mandatory ?? false,
       default_skills: t.default_skills,
+      description: t.description ?? "",
     }));
     res.json({ templates: result });
   });
@@ -2938,6 +2938,126 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
     }
     setProviderApiKey(provider, key ?? "");
     res.json({ ok: true, providers: getProviders() });
+  });
+
+  // ── Channel configuration (Telegram / Slack / Discord) ───────────────────
+
+  const VALID_CHANNELS = ["telegram", "slack", "discord"] as const;
+  type ValidChannel = (typeof VALID_CHANNELS)[number];
+  function isValidChannel(v: unknown): v is ValidChannel {
+    return typeof v === "string" && (VALID_CHANNELS as readonly string[]).includes(v);
+  }
+  function connectedMap() {
+    return { telegram: channelManager.isConnected("telegram"), slack: channelManager.isConnected("slack"), discord: channelManager.isConnected("discord") };
+  }
+
+  app.get("/api/channel-config", (_req, res) => {
+    res.json(getChannelConfigMasked(connectedMap()));
+  });
+
+  app.post("/api/channel-config", (req, res) => {
+    const { channel, ...creds } = req.body ?? {};
+    if (!isValidChannel(channel)) {
+      res.status(400).json({ error: "channel must be 'telegram', 'slack', or 'discord'" });
+      return;
+    }
+    if (channel === "telegram") {
+      const { botToken, chatId } = creds;
+      if (!botToken || !chatId) {
+        res.status(400).json({ error: "botToken and chatId are required" });
+        return;
+      }
+      saveChannelCredentials("telegram", { botToken, chatId });
+    } else if (channel === "slack") {
+      const { botToken, appToken, channelId } = creds;
+      if (!botToken || !appToken || !channelId) {
+        res.status(400).json({ error: "botToken, appToken, and channelId are required" });
+        return;
+      }
+      saveChannelCredentials("slack", { botToken, appToken, channelId });
+    } else {
+      const { botToken, channelId } = creds;
+      if (!botToken || !channelId) {
+        res.status(400).json({ error: "botToken and channelId are required" });
+        return;
+      }
+      saveChannelCredentials("discord", { botToken, channelId });
+    }
+    res.json({ ok: true, config: getChannelConfigMasked(connectedMap()) });
+  });
+
+  app.post("/api/channel-test", async (req, res) => {
+    const { channel, botToken, appToken } = req.body ?? {};
+    if (channel === "telegram") {
+      if (!botToken) { res.status(400).json({ ok: false, error: "botToken is required" }); return; }
+      try {
+        const resp = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+        const data = await resp.json() as any;
+        if (data.ok) {
+          res.json({ ok: true, botName: data.result?.first_name ?? data.result?.username ?? "Bot" });
+        } else {
+          res.json({ ok: false, error: data.description ?? "Invalid bot token" });
+        }
+      } catch (err: any) {
+        res.json({ ok: false, error: err?.message ?? "Connection failed" });
+      }
+    } else if (channel === "slack") {
+      if (!botToken) { res.status(400).json({ ok: false, error: "botToken is required" }); return; }
+      try {
+        const resp = await fetch("https://slack.com/api/auth.test", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${botToken}`, "Content-Type": "application/json" },
+        });
+        const data = await resp.json() as any;
+        if (data.ok) {
+          res.json({ ok: true, botName: data.bot_id ?? data.user ?? "Bot" });
+        } else {
+          res.json({ ok: false, error: data.error ?? "Invalid bot token" });
+        }
+      } catch (err: any) {
+        res.json({ ok: false, error: err?.message ?? "Connection failed" });
+      }
+    } else if (channel === "discord") {
+      if (!botToken) { res.status(400).json({ ok: false, error: "botToken is required" }); return; }
+      try {
+        const resp = await fetch("https://discord.com/api/v10/users/@me", {
+          headers: { "Authorization": `Bot ${botToken}` },
+        });
+        const data = await resp.json() as any;
+        if (resp.ok && data.username) {
+          res.json({ ok: true, botName: data.username });
+        } else {
+          res.json({ ok: false, error: data.message ?? "Invalid bot token" });
+        }
+      } catch (err: any) {
+        res.json({ ok: false, error: err?.message ?? "Connection failed" });
+      }
+    } else {
+      res.status(400).json({ ok: false, error: "channel must be 'telegram', 'slack', or 'discord'" });
+    }
+  });
+
+  app.post("/api/channel-restart", async (req, res) => {
+    const { channel } = req.body ?? {};
+    if (!isValidChannel(channel)) {
+      res.status(400).json({ error: "channel must be 'telegram', 'slack', or 'discord'" });
+      return;
+    }
+    const result = await channelManager.restartChannel(channel);
+    res.json(result);
+  });
+
+  app.post("/api/channel-disconnect", async (req, res) => {
+    const { channel } = req.body ?? {};
+    if (!isValidChannel(channel)) {
+      res.status(400).json({ error: "channel must be 'telegram', 'slack', or 'discord'" });
+      return;
+    }
+    await channelManager.stopChannel(channel);
+    if (channel === "telegram") saveChannelCredentials("telegram", null);
+    else if (channel === "slack") saveChannelCredentials("slack", null);
+    else saveChannelCredentials("discord", null);
+    res.json({ ok: true, config: getChannelConfigMasked(connectedMap()) });
   });
 
   // ── Finance: token usage & cost tracking ────────────────────────────────

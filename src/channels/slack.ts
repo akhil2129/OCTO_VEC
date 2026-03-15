@@ -1,8 +1,9 @@
 /**
  * Slack channel for TOWER.
  *
- * Routes messages from an authorized Slack channel to the PM agent and streams
- * the response back. Supports the same slash commands as CLI and Telegram.
+ * Routes messages from an authorized Slack channel OR direct messages (DMs)
+ * to the PM agent and streams the response back. Supports the same slash
+ * commands as CLI and Telegram.
  *
  * Uses Socket Mode (WebSocket) — no public URL required.
  *
@@ -10,6 +11,9 @@
  *   SLACK_BOT_TOKEN   — Bot User OAuth Token (xoxb-...)
  *   SLACK_APP_TOKEN   — App-Level Token (xapp-..., scope: connections:write)
  *   SLACK_CHANNEL_ID  — Channel ID where the bot listens and posts (C0123456789)
+ *
+ * DMs: The bot also responds to direct messages. Add `message.im` to your
+ * Slack app's Event Subscriptions alongside `message.channels`.
  */
 
 import { App, LogLevel } from "@slack/bolt";
@@ -92,8 +96,10 @@ class SlackChannel implements VECChannel {
 
     // Handle incoming messages
     this.app.message(async ({ message }) => {
-      // Only handle regular user messages (not bot messages, edits, etc.)
       const msg = message as unknown as Record<string, unknown>;
+      console.log(`[Slack] message event — channel: ${msg.channel}, subtype: ${msg.subtype ?? "none"}, text: ${typeof msg.text === "string" ? msg.text.slice(0, 80) : "(no text)"}`);
+
+      // Only handle regular user messages (not bot messages, edits, etc.)
       if (msg.subtype) return; // skip bot messages, edits, joins, etc.
       if (!msg.text || typeof msg.text !== "string") return;
 
@@ -103,16 +109,18 @@ class SlackChannel implements VECChannel {
     // Handle /vec slash command (optional — if registered in Slack app settings)
     this.app.command("/vec", async ({ command, ack }) => {
       await ack();
-      if (command.channel_id !== this.channelId) return;
+      if (!this.isAuthorized(command.channel_id)) return;
       await this.handleCommand(command.text.trim(), command.channel_id, command.trigger_id);
     });
   }
 
+  /** Allow the configured channel AND any direct message to the bot. */
   private isAuthorized(channel: string): boolean {
-    return channel === this.channelId;
+    return channel === this.channelId || channel.startsWith("D");
   }
 
   private async handleMessage(text: string, channel: string, threadTs: string): Promise<void> {
+    console.log(`[Slack] handleMessage — channel: ${channel}, authorized: ${this.isAuthorized(channel)}, channelId: ${this.channelId}`);
     if (!this.isAuthorized(channel)) return;
 
     const cmd = text.trim();
@@ -320,7 +328,7 @@ class SlackChannel implements VECChannel {
   async start(): Promise<void> {
     try {
       await this.app.start();
-      console.log(`  [Slack] Bot started — channel: ${this.channelId}`);
+      console.log(`  [Slack] Bot started — channel: ${this.channelId} + DMs`);
     } catch (err) {
       console.error("[Slack] Failed to start:", (err as Error)?.message ?? err);
     }

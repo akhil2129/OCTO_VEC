@@ -5,7 +5,7 @@
 
 import fs from "fs";
 import path from "path";
-import { PROJECT_ROOT } from "./config.js";
+import { USER_DATA_DIR } from "./config.js";
 
 export interface FounderProfile {
   /** Display name of the founder (e.g. "Akhil"). */
@@ -29,16 +29,16 @@ function parseField(text: string, field: string): string {
 }
 
 function load(): FounderProfile {
-  const filePath = path.join(PROJECT_ROOT, "ITS_ME.md");
+  const filePath = path.join(USER_DATA_DIR, "ITS_ME.md");
   let raw = "";
   try {
     raw = fs.readFileSync(filePath, "utf-8");
   } catch {
     // ITS_ME.md missing — fall back to bare minimum so the system still boots
-    raw = "**Name:** Akhil\n**Role:** Founder & CEO";
+    raw = "**Name:** User\n**Role:** Founder & CEO";
   }
 
-  const name = parseField(raw, "Name") || "Akhil";
+  const name = parseField(raw, "Name") || "User";
   const role = parseField(raw, "Role") || "Founder & CEO";
 
   return {

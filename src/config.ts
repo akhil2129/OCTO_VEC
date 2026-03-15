@@ -1,11 +1,36 @@
 import "dotenv/config";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import os from "os";
 import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
 import { getEmployeeId, getSpecialistEntries } from "./ar/roster.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-export const PROJECT_ROOT = join(__dirname, "..");
+
+/**
+ * PACKAGE_ROOT — the root of the installed npm package.
+ * Used ONLY to locate read-only shipped assets (core/prompts, core/roster.json, dashboard/dist).
+ */
+export const PACKAGE_ROOT = join(__dirname, "..");
+
+/** @deprecated Use PACKAGE_ROOT instead. Alias kept for any stragglers. */
+export const PROJECT_ROOT = PACKAGE_ROOT;
+
+/**
+ * USER_DATA_DIR — cross-platform directory for all mutable runtime state.
+ *   Windows:   %APPDATA%/octo-vec
+ *   Mac/Linux: ~/.octo-vec
+ * Override with VEC_DATA_DIR env var for CI/testing.
+ */
+export const USER_DATA_DIR: string = process.env.VEC_DATA_DIR
+  ?? (process.platform === "win32"
+    ? join(process.env.APPDATA ?? join(os.homedir(), "AppData", "Roaming"), "octo-vec")
+    : join(os.homedir(), ".octo-vec"));
+
+/** Read-only core assets shipped with the package. */
+export const CORE_DIR = join(PACKAGE_ROOT, "core");
+export const CORE_PROMPTS_DIR = join(CORE_DIR, "prompts");
+export const DEFAULT_ROSTER_PATH = join(CORE_DIR, "roster.json");
 const thinkingLevelRaw = (process.env.VEC_THINKING_LEVEL ?? "off").trim().toLowerCase();
 const thinkingLevel: ThinkingLevel =
   thinkingLevelRaw === "minimal" ||
@@ -36,7 +61,7 @@ export const config = {
   companyName: process.env.COMPANY_NAME ?? "VEC",
   workspace: process.env.VEC_WORKSPACE
     ? process.env.VEC_WORKSPACE
-    : join(PROJECT_ROOT, "workspace"),
+    : join(process.cwd(), "workspace"),
   pmProactiveEnabled:
     !["0", "false", "no"].includes(
       (process.env.VEC_PM_PROACTIVE_ENABLED ?? "0").trim().toLowerCase()
@@ -47,8 +72,8 @@ export const config = {
     parseInt(process.env.VEC_PM_PROACTIVE_INTERVAL_SECS ?? "30", 10)
   ),
 
-  dataDir: join(PROJECT_ROOT, "data"),
-  memoryDir: join(PROJECT_ROOT, "memory"),
+  dataDir: USER_DATA_DIR,
+  memoryDir: join(USER_DATA_DIR, "memory"),
   dashboardPort: parseInt(process.env.VEC_DASHBOARD_PORT ?? "3000", 10),
   /**
    * Inbound message debounce window (ms). Rapid messages within this window

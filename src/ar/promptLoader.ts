@@ -5,9 +5,9 @@
 
 import { readFileSync } from "fs";
 import { join } from "path";
-import { PROJECT_ROOT } from "../config.js";
+import { CORE_PROMPTS_DIR } from "../config.js";
 
-const PROMPTS_DIR = join(PROJECT_ROOT, "data", "prompts");
+const PROMPTS_DIR = CORE_PROMPTS_DIR;
 
 /**
  * Load a prompt template file and interpolate {{variable}} placeholders.

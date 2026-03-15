@@ -6,7 +6,7 @@
 
 import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { PROJECT_ROOT } from "../config.js";
+import { USER_DATA_DIR } from "../config.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -24,6 +24,8 @@ export interface RoleTemplate {
   default_skills: string[];
   /** If true, this role cannot be removed or disabled. */
   mandatory?: boolean;
+  /** Brief description of what this role does. */
+  description?: string;
 }
 
 export interface RosterEntry {
@@ -63,7 +65,7 @@ export interface Roster {
 // Lazy — avoids circular-import TDZ (config.ts ↔ roster.ts).
 let _rosterPath: string | null = null;
 function getRosterPath(): string {
-  return (_rosterPath ??= join(PROJECT_ROOT, "data", "roster.json"));
+  return (_rosterPath ??= join(USER_DATA_DIR, "roster.json"));
 }
 let _cached: Roster | null = null;
 

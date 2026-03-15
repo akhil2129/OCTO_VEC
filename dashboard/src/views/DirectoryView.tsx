@@ -3,6 +3,12 @@ import {
   Lock, X, Search, ChevronLeft,
   UserPlus, Power, Trash2,
   LayoutGrid, Building2, Cpu, Check,
+  // Role icons
+  Briefcase, Code, BarChart3, Bug, ShieldCheck, Container,
+  FileText, Compass, FlaskConical, Monitor, Server as ServerIcon,
+  Smartphone, Database, Brain, Activity, ClipboardList, Palette,
+  Users, LineChart, Rocket, Scale, Headphones,
+  type LucideIcon,
 } from "lucide-react";
 import { usePolling, postApi, deleteApi } from "../hooks/useApi";
 import { useAgentStream } from "../hooks/useSSE";
@@ -35,6 +41,21 @@ const ROLE_COLORS: Record<string, string> = {
   "UI/UX Designer": "var(--purple)", "Scrum Master": "var(--purple)",
   "Data Analyst": "var(--green)", "Release Manager": "var(--green)",
   "Compliance Officer": "var(--red)", "Support Engineer": "var(--yellow)",
+};
+
+const ROLE_ICONS: Record<string, LucideIcon> = {
+  "Project Manager": Briefcase, "Senior Developer": Code,
+  "Business Analyst": BarChart3, "QA Engineer": Bug,
+  "Security Engineer": ShieldCheck, "DevOps Engineer": Container,
+  "Technical Writer": FileText, "Solutions Architect": Compass,
+  "Research Specialist": FlaskConical,
+  "Frontend Developer": Monitor, "Backend Developer": ServerIcon,
+  "Mobile Developer": Smartphone, "Data Engineer": Database,
+  "Database Administrator": Database, "ML/AI Engineer": Brain,
+  "Site Reliability Engineer": Activity, "Product Owner": ClipboardList,
+  "UI/UX Designer": Palette, "Scrum Master": Users,
+  "Data Analyst": LineChart, "Release Manager": Rocket,
+  "Compliance Officer": Scale, "Support Engineer": Headphones,
 };
 
 const LOCKED = new Set(["message_agent", "read_inbox"]);
@@ -134,19 +155,31 @@ function HireModal({
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [roleSearch, setRoleSearch] = useState("");
 
   const hireableTemplates = templates.filter((t) => !t.mandatory);
+
+  // Filter by search
+  const filteredTemplates = useMemo(() => {
+    if (!roleSearch.trim()) return hireableTemplates;
+    const q = roleSearch.toLowerCase();
+    return hireableTemplates.filter((t) =>
+      t.role.toLowerCase().includes(q) ||
+      t.department.toLowerCase().includes(q) ||
+      t.default_skills.some((s) => s.toLowerCase().includes(q))
+    );
+  }, [hireableTemplates, roleSearch]);
 
   // Group by department
   const departments = useMemo(() => {
     const map = new Map<string, RoleTemplateSummary[]>();
-    for (const t of hireableTemplates) {
+    for (const t of filteredTemplates) {
       const arr = map.get(t.department) ?? [];
       arr.push(t);
       map.set(t.department, arr);
     }
     return [...map.entries()];
-  }, [hireableTemplates]);
+  }, [filteredTemplates]);
 
   const selectedInfo = hireableTemplates.find((t) => t.id === selectedTemplate);
 
@@ -164,6 +197,9 @@ function HireModal({
     }
   }
 
+  const SelIcon = selectedInfo ? ROLE_ICONS[selectedInfo.role] : null;
+  const selColor = selectedInfo ? (ROLE_COLORS[selectedInfo.role] ?? "var(--accent)") : "var(--accent)";
+
   return (
     <>
       {/* Backdrop */}
@@ -175,211 +211,290 @@ function HireModal({
           WebkitBackdropFilter: "blur(8px)",
         }}
       />
-      {/* Modal */}
+      {/* Modal — wide two-panel */}
       <div style={{
         position: "fixed", top: "50%", left: "50%",
         transform: "translate(-50%, -50%)", zIndex: 101,
         background: "var(--bg-secondary)", border: "1px solid var(--border)",
-        borderRadius: 16, padding: 0, width: 720, maxWidth: "92vw",
-        maxHeight: "85vh", display: "flex", flexDirection: "column",
-        boxShadow: "0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px var(--border)",
+        borderRadius: 14, padding: 0, width: 880, maxWidth: "94vw",
+        height: 540, maxHeight: "85vh", display: "flex", flexDirection: "column",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
         overflow: "hidden",
       }}>
         {/* Header */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "18px 24px 14px",
+          padding: "14px 20px 12px",
           borderBottom: "1px solid var(--border)", flexShrink: 0,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
-              width: 34, height: 34, borderRadius: 10,
+              width: 30, height: 30, borderRadius: 8,
               background: "var(--accent-subtle)",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
-              <UserPlus size={16} style={{ color: "var(--accent)" }} />
+              <UserPlus size={14} style={{ color: "var(--accent)" }} />
             </div>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>
-                Hire New Agent
-              </div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>
-                Select a department and role
-              </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
+              Hire New Agent
             </div>
+            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+              {hireableTemplates.length} roles available
+            </span>
           </div>
           <button onClick={onClose} style={{
             display: "flex", alignItems: "center", justifyContent: "center",
-            width: 28, height: 28, border: "1px solid var(--border)", borderRadius: 8,
+            width: 26, height: 26, border: "1px solid var(--border)", borderRadius: 7,
             background: "var(--bg-tertiary)", color: "var(--text-muted)",
-            cursor: "pointer", padding: 0, transition: "all 0.12s",
+            cursor: "pointer", padding: 0,
           }}
             onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = "var(--text-primary)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "var(--bg-tertiary)"; e.currentTarget.style.color = "var(--text-muted)"; }}
           >
-            <X size={14} />
+            <X size={13} />
           </button>
         </div>
 
-        {/* Scrollable body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px 20px" }}>
-          {/* Departments + roles */}
-          {departments.map(([dept, roles]) => {
-            const deptColor = getDeptColor(dept);
-            return (
-              <div key={dept} style={{ marginBottom: 16 }}>
-                {/* Department header */}
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  marginBottom: 8, padding: "0 2px",
-                }}>
-                  <Building2 size={12} style={{ color: deptColor, opacity: 0.7 }} />
-                  <span style={{
-                    fontSize: 11, fontWeight: 600, color: "var(--text-muted)",
-                    textTransform: "uppercase", letterSpacing: "0.06em",
+        {/* Two-panel body */}
+        <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
+          {/* Left panel — role list */}
+          <div style={{
+            width: 320, flexShrink: 0, display: "flex", flexDirection: "column",
+            borderRight: "1px solid var(--border)",
+            overflow: "hidden",
+          }}>
+            {/* Search bar */}
+            <div style={{ padding: "10px 14px 6px", flexShrink: 0 }}>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8,
+                background: "var(--bg-tertiary)", border: "1px solid var(--border)",
+                borderRadius: 8, padding: "6px 10px",
+              }}>
+                <Search size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                <input
+                  value={roleSearch}
+                  onChange={(e) => setRoleSearch(e.target.value)}
+                  placeholder="Search roles..."
+                  style={{
+                    border: "none", outline: "none", background: "transparent",
+                    color: "var(--text-primary)", fontSize: 12,
+                    width: "100%", fontFamily: "inherit", padding: 0,
+                  }}
+                />
+                {roleSearch && (
+                  <button onClick={() => setRoleSearch("")} style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    width: 14, height: 14, border: "none", background: "var(--bg-hover)",
+                    color: "var(--text-muted)", cursor: "pointer", borderRadius: 3,
+                    padding: 0, flexShrink: 0,
                   }}>
-                    {dept}
-                  </span>
-                  <span style={{
-                    fontSize: 10, color: "var(--text-muted)", opacity: 0.5,
-                  }}>
-                    {roles.length} {roles.length === 1 ? "role" : "roles"}
-                  </span>
-                  <div style={{
-                    flex: 1, height: 1, background: "var(--border)", marginLeft: 4,
-                  }} />
-                </div>
+                    <X size={9} />
+                  </button>
+                )}
+              </div>
+            </div>
 
-                {/* Role cards grid */}
-                <div style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-                  gap: 6,
-                }}>
+            {/* Scrollable role list */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "6px 14px 12px" }}>
+            {departments.map(([dept, roles]) => {
+              const deptColor = getDeptColor(dept);
+              return (
+                <div key={dept} style={{ marginBottom: 10 }}>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    marginBottom: 5, padding: "0 4px",
+                  }}>
+                    <Building2 size={10} style={{ color: deptColor, opacity: 0.7 }} />
+                    <span style={{
+                      fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
+                      textTransform: "uppercase", letterSpacing: "0.05em",
+                    }}>
+                      {dept}
+                    </span>
+                    <div style={{ flex: 1, height: 1, background: "var(--border)", marginLeft: 4 }} />
+                  </div>
+
                   {roles.map((t) => {
                     const sel = selectedTemplate === t.id;
                     const roleColor = ROLE_COLORS[t.role] ?? deptColor;
+                    const RoleIcon = ROLE_ICONS[t.role];
                     return (
                       <button
                         key={t.id}
                         onClick={() => setSelectedTemplate(t.id)}
                         style={{
-                          fontSize: 12, padding: "10px 12px", borderRadius: 10,
+                          width: "100%", fontSize: 12, padding: "8px 12px", borderRadius: 8,
                           cursor: "pointer", border: "1px solid",
-                          fontFamily: "inherit", fontWeight: 500, textAlign: "left",
-                          borderColor: sel ? "var(--accent)" : "var(--border)",
-                          background: sel ? "var(--accent-subtle)" : "var(--bg-card)",
+                          fontFamily: "inherit", fontWeight: 500,
+                          borderColor: sel ? "var(--accent)" : "transparent",
+                          background: sel ? "var(--accent-subtle)" : "transparent",
                           color: sel ? "var(--accent)" : "var(--text-secondary)",
-                          transition: "all 0.12s",
+                          transition: "all 0.1s",
+                          display: "flex", alignItems: "center", gap: 10,
+                          textAlign: "left", marginBottom: 2,
                         }}
-                        onMouseEnter={(e) => { if (!sel) e.currentTarget.style.borderColor = "var(--text-muted)"; }}
-                        onMouseLeave={(e) => { if (!sel) e.currentTarget.style.borderColor = sel ? "var(--accent)" : "var(--border)"; }}
+                        onMouseEnter={(e) => { if (!sel) e.currentTarget.style.background = "var(--bg-hover)"; }}
+                        onMouseLeave={(e) => { if (!sel) e.currentTarget.style.background = sel ? "var(--accent-subtle)" : "transparent"; }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                        {RoleIcon ? (
+                          <RoleIcon size={16} style={{ color: sel ? "var(--accent)" : roleColor, flexShrink: 0 }} />
+                        ) : (
                           <span style={{
-                            width: 7, height: 7, borderRadius: "50%",
-                            background: sel ? "var(--accent)" : roleColor,
-                            flexShrink: 0, opacity: sel ? 1 : 0.7,
+                            width: 8, height: 8, borderRadius: "50%",
+                            background: sel ? "var(--accent)" : roleColor, flexShrink: 0,
                           }} />
-                          <span style={{ lineHeight: 1.3 }}>{t.role}</span>
-                        </div>
+                        )}
+                        {t.role}
                       </button>
                     );
                   })}
                 </div>
+              );
+            })}
+
+            {filteredTemplates.length === 0 && (
+              <div style={{ padding: 20, textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>
+                {roleSearch ? `No roles matching "${roleSearch}"` : "No additional roles available."}
               </div>
-            );
-          })}
-
-          {hireableTemplates.length === 0 && (
-            <div style={{
-              padding: 24, textAlign: "center",
-              color: "var(--text-muted)", fontSize: 13,
-            }}>
-              No additional roles available to hire.
+            )}
             </div>
-          )}
-        </div>
-
-        {/* Footer — name + actions (sticky at bottom) */}
-        <div style={{
-          padding: "14px 24px 18px",
-          borderTop: "1px solid var(--border)", flexShrink: 0,
-          background: "var(--bg-secondary)",
-        }}>
-          {/* Selected role indicator */}
-          {selectedInfo && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8,
-              marginBottom: 12, fontSize: 12, color: "var(--text-secondary)",
-            }}>
-              <span style={{
-                width: 8, height: 8, borderRadius: "50%",
-                background: ROLE_COLORS[selectedInfo.role] ?? "var(--accent)",
-              }} />
-              <span style={{ fontWeight: 500 }}>
-                {selectedInfo.role}
-              </span>
-              <span style={{ color: "var(--text-muted)" }}>
-                — {selectedInfo.department}
-              </span>
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submit()}
-              placeholder={selectedTemplate ? "Enter agent name..." : "Select a role first"}
-              disabled={!selectedTemplate}
-              style={{
-                flex: 1, fontSize: 13, padding: "10px 14px", borderRadius: 10,
-                border: "1px solid var(--border)", background: "var(--bg-card)",
-                color: "var(--text-primary)", fontFamily: "inherit",
-                outline: "none", boxSizing: "border-box",
-                transition: "border-color 0.12s",
-                opacity: selectedTemplate ? 1 : 0.5,
-              }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
-            />
-            <button onClick={onClose} style={{
-              fontSize: 12, padding: "10px 16px", borderRadius: 10,
-              border: "1px solid var(--border)", background: "transparent",
-              color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit",
-              fontWeight: 500, transition: "all 0.12s", flexShrink: 0,
-            }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={submit}
-              disabled={busy || !selectedTemplate || !name.trim()}
-              style={{
-                fontSize: 12, padding: "10px 22px", borderRadius: 10, border: "none",
-                background: "var(--accent)", color: "#fff", cursor: "pointer",
-                fontFamily: "inherit", fontWeight: 600, flexShrink: 0,
-                opacity: busy || !selectedTemplate || !name.trim() ? 0.4 : 1,
-                transition: "all 0.12s",
-                boxShadow: busy || !selectedTemplate || !name.trim() ? "none" : "0 2px 12px rgba(91,141,239,0.3)",
-              }}
-            >
-              {busy ? "Hiring..." : "Hire Agent"}
-            </button>
           </div>
 
-          {error && (
-            <div style={{
-              fontSize: 12, color: "var(--red)", marginTop: 10,
-              padding: "8px 12px", background: "var(--red-bg)",
-              borderRadius: 8, border: "1px solid rgba(232,100,90,0.15)",
-            }}>
-              {error}
-            </div>
-          )}
+          {/* Right panel — job description + hire form */}
+          <div style={{
+            flex: 1, display: "flex", flexDirection: "column",
+            overflow: "hidden",
+          }}>
+            {selectedInfo ? (
+              <>
+                {/* Role header */}
+                <div style={{
+                  padding: "18px 24px 14px", flexShrink: 0,
+                  borderBottom: "1px solid var(--border)",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 10,
+                      background: selColor, opacity: 0.9,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      {SelIcon ? <SelIcon size={20} style={{ color: "#fff" }} /> : <UserPlus size={18} style={{ color: "#fff" }} />}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)" }}>
+                        {selectedInfo.role}
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 1 }}>
+                        {selectedInfo.department} · {selectedInfo.category === "pm" ? "Management" : "Specialist"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Scrollable description area */}
+                <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px" }}>
+                  {/* Job description */}
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{
+                      fontSize: 11, fontWeight: 600, color: "var(--text-muted)",
+                      textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8,
+                    }}>
+                      Job Description
+                    </div>
+                    <div style={{
+                      fontSize: 13, lineHeight: 1.6, color: "var(--text-secondary)",
+                    }}>
+                      {selectedInfo.description || "No description available."}
+                    </div>
+                  </div>
+
+                  {/* Skills */}
+                  <div>
+                    <div style={{
+                      fontSize: 11, fontWeight: 600, color: "var(--text-muted)",
+                      textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8,
+                    }}>
+                      Default Skills
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {selectedInfo.default_skills.map((skill) => (
+                        <span key={skill} style={{
+                          fontSize: 11, fontWeight: 500, padding: "4px 10px",
+                          borderRadius: 6, background: "var(--bg-tertiary)",
+                          color: "var(--text-secondary)", border: "1px solid var(--border)",
+                        }}>
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hire form at bottom */}
+                <div style={{
+                  padding: "14px 24px 16px",
+                  borderTop: "1px solid var(--border)", flexShrink: 0,
+                  background: "var(--bg-secondary)",
+                }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && submit()}
+                      placeholder="Enter agent name..."
+                      style={{
+                        flex: 1, fontSize: 13, padding: "9px 14px", borderRadius: 8,
+                        border: "1px solid var(--border)", background: "var(--bg-card)",
+                        color: "var(--text-primary)", fontFamily: "inherit",
+                        outline: "none", boxSizing: "border-box",
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+                    />
+                    <button
+                      onClick={submit}
+                      disabled={busy || !name.trim()}
+                      style={{
+                        fontSize: 12, padding: "9px 22px", borderRadius: 8, border: "none",
+                        background: "var(--accent)", color: "#fff", cursor: "pointer",
+                        fontFamily: "inherit", fontWeight: 600, flexShrink: 0,
+                        opacity: busy || !name.trim() ? 0.4 : 1,
+                        display: "flex", alignItems: "center", gap: 6,
+                      }}
+                    >
+                      <UserPlus size={13} />
+                      {busy ? "Hiring..." : "Hire Agent"}
+                    </button>
+                  </div>
+
+                  {error && (
+                    <div style={{
+                      fontSize: 11, color: "var(--red)", marginTop: 8,
+                      padding: "6px 10px", background: "var(--red-bg)",
+                      borderRadius: 6, border: "1px solid rgba(232,100,90,0.15)",
+                    }}>
+                      {error}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              /* Empty state when no role selected */
+              <div style={{
+                flex: 1, display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center",
+                color: "var(--text-muted)", gap: 12, padding: 40,
+              }}>
+                <Briefcase size={32} style={{ opacity: 0.3 }} />
+                <div style={{ fontSize: 14, fontWeight: 500 }}>
+                  Select a role
+                </div>
+                <div style={{ fontSize: 12, textAlign: "center", maxWidth: 240, lineHeight: 1.5 }}>
+                  Choose a role from the list to see the job description and hire a new agent.
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>
