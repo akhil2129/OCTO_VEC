@@ -33,7 +33,7 @@ import { AgentInterrupt } from "../atp/agentInterrupt.js";
 import { UserChatLog } from "../atp/chatLog.js";
 import { agentStreamBus, getReplayBuffer } from "../atp/agentStreamBus.js";
 import type { StreamToken } from "../atp/agentStreamBus.js";
-import { AGENT_PROFILES, getEnabledTools, setAgentTools } from "../atp/agentToolConfig.js";
+import { getAgentProfiles, getEnabledTools, setAgentTools } from "../atp/agentToolConfig.js";
 import { getAllGroups, getGroup, addGroup, deleteGroup, markActiveGroupConversation, clearActiveGroup } from "../atp/agentGroups.js";
 import { getRosterEntry, getRoleTemplates } from "../ar/roster.js";
 import { AgentRuntime } from "../atp/agentRuntime.js";
@@ -2685,7 +2685,8 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
 
   // ── Company: agent profiles + tool config ────────────────────────────────
   app.get("/api/company", (_req, res) => {
-    const data = AGENT_PROFILES.map((profile) => ({
+    const profiles = getAgentProfiles();
+    const data = profiles.map((profile) => ({
       agent_id: profile.agent_id,
       name: profile.name,
       role: profile.role,
@@ -2703,7 +2704,7 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
     }
     const id = agent_id.trim().toLowerCase();
     // Always re-add locked tools regardless of what the client sends
-    const profile = AGENT_PROFILES.find((a) => a.agent_id === id);
+    const profile = getAgentProfiles().find((a) => a.agent_id === id);
     const lockedIds = profile?.tools.filter((t) => t.locked).map((t) => t.id) ?? [];
     const safeTools = [...new Set([...(tools as string[]), ...lockedIds])];
     setAgentTools(id, safeTools);

@@ -202,6 +202,12 @@ function buildAgentProfiles(): AgentProfile[] {
   }));
 }
 
+/** Live agent profiles — re-reads roster.json each call so newly hired agents appear. */
+export function getAgentProfiles(): AgentProfile[] {
+  return buildAgentProfiles();
+}
+
+/** @deprecated Use getAgentProfiles() for live data. Static snapshot kept for back-compat. */
 export const AGENT_PROFILES: AgentProfile[] = buildAgentProfiles();
 
 // ── Persistence ───────────────────────────────────────────────────────────────
@@ -221,7 +227,7 @@ export function writeToolConfig(cfg: Record<string, string[]>): void {
 
 /** Returns list of enabled tool IDs for an agent. Locked tools are always included. */
 export function getEnabledTools(agentId: string): string[] {
-  const profile = AGENT_PROFILES.find((a) => a.agent_id === agentId);
+  const profile = getAgentProfiles().find((a) => a.agent_id === agentId);
   const lockedIds = profile?.tools.filter((t) => t.locked).map((t) => t.id) ?? [];
   const stored = readToolConfig();
   if (stored[agentId]) {
@@ -253,7 +259,7 @@ export function applyToolConfig(agentId: string, allTools: any[]): any[] {
   if (!stored[agentId]) return allTools;
 
   const enabled = new Set(getEnabledTools(agentId));
-  const profile = AGENT_PROFILES.find((a) => a.agent_id === agentId);
+  const profile = getAgentProfiles().find((a) => a.agent_id === agentId);
   const locked = new Set(profile?.tools.filter((t) => t.locked).map((t) => t.id) ?? []);
 
   return allTools.map((t) => {
