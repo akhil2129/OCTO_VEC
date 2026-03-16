@@ -54,6 +54,8 @@ export interface AgentProfile {
   role: string;
   enabled_tools: string[];
   all_tools: string[];
+  all_mcp_servers: string[];
+  enabled_mcp_servers: string[];
 }
 
 export interface ErrorEntry {

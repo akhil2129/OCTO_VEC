@@ -33,11 +33,11 @@ import { AgentInterrupt } from "../atp/agentInterrupt.js";
 import { UserChatLog } from "../atp/chatLog.js";
 import { agentStreamBus, getReplayBuffer } from "../atp/agentStreamBus.js";
 import type { StreamToken } from "../atp/agentStreamBus.js";
-import { getAgentProfiles, getEnabledTools, setAgentTools } from "../atp/agentToolConfig.js";
+import { getAgentProfiles, getEnabledTools, setAgentTools, getEnabledMCPServers, setAgentMCPServers } from "../atp/agentToolConfig.js";
 import { getAllGroups, getGroup, addGroup, deleteGroup, markActiveGroupConversation, clearActiveGroup } from "../atp/agentGroups.js";
 import { getRosterEntry, getRoleTemplates } from "../ar/roster.js";
 import { AgentRuntime } from "../atp/agentRuntime.js";
-import { getMCPTools } from "../mcp/mcpBridge.js";
+import { getMCPTools, reloadMCP } from "../mcp/mcpBridge.js";
 import { ActiveChannelState } from "../channels/activeChannel.js";
 import type { VECAgent } from "../atp/inboxLoop.js";
 import { getAllUsage as getFinanceAllUsage, getTotals as getFinanceTotals, resetUsage as resetFinanceUsage } from "../atp/tokenTracker.js";
@@ -2686,12 +2686,21 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
   // ── Company: agent profiles + tool config ────────────────────────────────
   app.get("/api/company", (_req, res) => {
     const profiles = getAgentProfiles();
+    // Collect all MCP server names
+    const mcpTools = getMCPTools();
+    const allMCPServers = [...new Set(mcpTools.map((t) => {
+      const p = t.name.split("_");
+      return p.length >= 3 && p[0] === "mcp" ? p[1] : null;
+    }).filter(Boolean))] as string[];
+
     const data = profiles.map((profile) => ({
       agent_id: profile.agent_id,
       name: profile.name,
       role: profile.role,
       all_tools: profile.tools.map((t) => t.id),
       enabled_tools: getEnabledTools(profile.agent_id),
+      all_mcp_servers: allMCPServers,
+      enabled_mcp_servers: getEnabledMCPServers(profile.agent_id, allMCPServers),
     }));
     res.json({ agents: data });
   });
@@ -2721,7 +2730,7 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
     } catch { res.json({ mcpServers: {} }); }
   });
 
-  app.post("/api/mcp-config", (req, res) => {
+  app.post("/api/mcp-config", async (req, res) => {
     try {
       const body = req.body;
       // Validate MCP config — prevent RCE via arbitrary command spawning
@@ -2731,7 +2740,9 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
         return;
       }
       writeFileSync(mcpCfgPath, JSON.stringify(body, null, 2), "utf-8");
-      res.json({ ok: true });
+      // Hot-reload: connect new servers, disconnect removed ones — no restart needed
+      const result = await reloadMCP();
+      res.json({ ok: true, ...result });
     } catch (err: any) {
       res.status(500).json({ error: "Failed to save MCP config" });
     }
@@ -2754,6 +2765,32 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
       }));
       res.json({ servers });
     } catch { res.json({ servers: [] }); }
+  });
+
+  // ── Per-agent MCP server config ──────────────────────────────────────────
+  app.get("/api/agent-mcp/:agentId", (req, res) => {
+    const agentId = req.params.agentId.trim().toLowerCase();
+    // Get all connected MCP server names
+    const tools = getMCPTools();
+    const allServers = new Set<string>();
+    for (const t of tools) {
+      const p = t.name.split("_");
+      if (p.length >= 3 && p[0] === "mcp") allServers.add(p[1]);
+    }
+    const allServerNames = [...allServers];
+    const enabled = getEnabledMCPServers(agentId, allServerNames);
+    res.json({ agent_id: agentId, all_servers: allServerNames, enabled_servers: enabled });
+  });
+
+  app.post("/api/agent-mcp", (req, res) => {
+    const { agent_id, servers } = req.body ?? {};
+    if (!agent_id || typeof agent_id !== "string" || !Array.isArray(servers)) {
+      res.status(400).json({ error: "agent_id (string) and servers (string[]) are required" });
+      return;
+    }
+    const id = agent_id.trim().toLowerCase();
+    setAgentMCPServers(id, servers as string[]);
+    res.json({ ok: true, agent_id: id, servers });
   });
 
   // ── Agent Runtime: dynamic agent lifecycle management ─────────────────────

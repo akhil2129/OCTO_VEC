@@ -802,6 +802,108 @@ function ExpandedToolsGrid({ profile }: { profile: AgentProfile }) {
   );
 }
 
+/* ── MCP Server toggles per agent ── */
+
+function AgentMCPServers({ profile }: { profile: AgentProfile }) {
+  const [enabled, setEnabled] = useState<Set<string>>(() => new Set(profile.enabled_mcp_servers));
+  const [saving, setSaving] = useState(false);
+  const dirty = JSON.stringify([...enabled].sort()) !== JSON.stringify([...profile.enabled_mcp_servers].sort());
+
+  if (!profile.all_mcp_servers || profile.all_mcp_servers.length === 0) return null;
+
+  function toggle(s: string) {
+    setEnabled((p) => { const n = new Set(p); n.has(s) ? n.delete(s) : n.add(s); return n; });
+  }
+
+  async function save() {
+    setSaving(true);
+    try { await postApi("/api/agent-mcp", { agent_id: profile.agent_id, servers: Array.from(enabled) }); }
+    catch (e) { console.error(e); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        marginBottom: 14,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>MCP Servers</span>
+          <span style={{
+            fontSize: 11, color: "var(--text-muted)", background: "var(--bg-tertiary)",
+            padding: "2px 8px", borderRadius: 5, fontFamily: "monospace",
+          }}>
+            {enabled.size}/{profile.all_mcp_servers.length}
+          </span>
+        </div>
+        {dirty && (
+          <button onClick={save} disabled={saving} style={{
+            fontSize: 11, fontWeight: 500, padding: "4px 14px", borderRadius: 6, border: "none",
+            background: "var(--accent)", color: "#fff", cursor: "pointer", fontFamily: "inherit",
+            opacity: saving ? 0.5 : 1,
+          }}>
+            {saving ? "Saving..." : "Save changes"}
+          </button>
+        )}
+      </div>
+
+      <div style={{
+        border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden",
+      }}>
+        <div style={{
+          fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
+          textTransform: "uppercase", letterSpacing: "0.05em",
+          padding: "7px 12px 5px",
+          background: "var(--bg-tertiary)",
+          borderBottom: "1px solid var(--border)",
+        }}>
+          Connected Servers
+        </div>
+        {profile.all_mcp_servers.map((server, i) => {
+          const on = enabled.has(server);
+          return (
+            <div key={server}
+              className="tool-row"
+              onClick={() => toggle(server)}
+              style={{
+                borderBottom: i < profile.all_mcp_servers.length - 1 ? "1px solid var(--border)" : "none",
+                height: 36,
+              }}
+            >
+              <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
+                <Cpu size={12} style={{ color: on ? "var(--accent)" : "var(--text-muted)", flexShrink: 0 }} />
+                <span style={{
+                  fontSize: 12, fontFamily: "monospace",
+                  color: on ? "var(--text-primary)" : "var(--text-muted)",
+                }}>
+                  {server}
+                </span>
+              </div>
+              <div style={{
+                width: 28, height: 16, borderRadius: 8, flexShrink: 0,
+                background: on ? "var(--green)" : "var(--bg-tertiary)",
+                border: on ? "none" : "1px solid var(--border)",
+                position: "relative",
+                transition: "background 0.15s",
+                cursor: "pointer",
+              }}>
+                <div style={{
+                  width: 12, height: 12, borderRadius: "50%",
+                  background: on ? "#fff" : "var(--text-muted)",
+                  position: "absolute", top: 2,
+                  left: on ? 14 : 2,
+                  transition: "left 0.15s, background 0.15s",
+                }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── Main DirectoryView ── */
 
 export default function DirectoryView() {
@@ -1517,6 +1619,11 @@ export default function DirectoryView() {
                 {/* Tools grid */}
                 {expandedProfile && (
                   <ExpandedToolsGrid key={expandedAgent} profile={expandedProfile} />
+                )}
+
+                {/* MCP server toggles */}
+                {expandedProfile && (
+                  <AgentMCPServers key={`mcp-${expandedAgent}`} profile={expandedProfile} />
                 )}
 
               </div>

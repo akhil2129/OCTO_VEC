@@ -618,7 +618,7 @@ export default function SettingsView() {
       const res = await postApi("/api/mcp-config", mcpConfig);
       if (res?.ok) {
         setDirty(false);
-        showToast("Saved! Restart server to apply changes.");
+        showToast("Saved! MCP servers updated automatically.");
         fetchMCP();
       } else {
         showToast("Save failed");

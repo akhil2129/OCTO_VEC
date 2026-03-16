@@ -10,6 +10,7 @@ import { config } from "../config.js";
 import { loadRoster, type RosterEntry } from "../ar/roster.js";
 
 const CONFIG_PATH = join(config.dataDir, "agent-tool-config.json");
+const MCP_CONFIG_PATH = join(config.dataDir, "agent-mcp-config.json");
 
 export interface ToolDef {
   id: string;
@@ -245,39 +246,107 @@ export function setAgentTools(agentId: string, toolIds: string[]): void {
   writeToolConfig(cfg);
 }
 
+// ── Per-agent MCP server config ─────────────────────────────────────────────
+// Stored as { [agentId]: string[] } — list of enabled MCP server names.
+// Default (no entry): all MCP servers enabled for that agent.
+
+export function readMCPConfig(): Record<string, string[]> {
+  if (!existsSync(MCP_CONFIG_PATH)) return {};
+  try {
+    return JSON.parse(readFileSync(MCP_CONFIG_PATH, "utf-8"));
+  } catch {
+    return {};
+  }
+}
+
+export function writeMCPConfig(cfg: Record<string, string[]>): void {
+  writeFileSync(MCP_CONFIG_PATH, JSON.stringify(cfg, null, 2), "utf-8");
+}
+
+/** Returns list of enabled MCP server names for an agent. Empty config = all enabled. */
+export function getEnabledMCPServers(agentId: string, allServerNames: string[]): string[] {
+  const stored = readMCPConfig();
+  if (stored[agentId]) return stored[agentId];
+  return allServerNames; // default: all enabled
+}
+
+/** Persist which MCP servers an agent can use. */
+export function setAgentMCPServers(agentId: string, serverNames: string[]): void {
+  const cfg = readMCPConfig();
+  cfg[agentId] = serverNames;
+  writeMCPConfig(cfg);
+}
+
+/** Check if a specific MCP server is enabled for an agent. */
+export function isMCPServerEnabled(agentId: string, serverName: string, allServerNames: string[]): boolean {
+  return getEnabledMCPServers(agentId, allServerNames).includes(serverName);
+}
+
 /**
  * Apply tool enable/disable config to a list of AgentTool objects.
  * - Locked tools: always pass through unchanged.
+ * - MCP tools from disabled servers: soft-blocked.
  * - Disabled tools: kept in schema (no hallucination) but execute returns a
  *   "disabled" error. A per-tool retry counter escalates the message on
  *   repeated calls to discourage the LLM from retrying.
  */
 export function applyToolConfig(agentId: string, allTools: any[]): any[] {
   const stored = readToolConfig();
+  const mcpCfg = readMCPConfig();
 
-  // No stored config for this agent = full access, no blocking
-  if (!stored[agentId]) return allTools;
-
-  const enabled = new Set(getEnabledTools(agentId));
   const profile = getAgentProfiles().find((a) => a.agent_id === agentId);
   const locked = new Set(profile?.tools.filter((t) => t.locked).map((t) => t.id) ?? []);
 
-  return allTools.map((t) => {
-    // Locked or enabled — pass through as-is
-    if (locked.has(t.name) || enabled.has(t.name)) return t;
+  // Build set of disabled MCP servers for this agent
+  const disabledMCPServers = new Set<string>();
+  if (mcpCfg[agentId]) {
+    const enabledServers = new Set(mcpCfg[agentId]);
+    // Find all MCP server names from the tools list
+    for (const t of allTools) {
+      if (t.name.startsWith("mcp_")) {
+        const serverName = t.name.split("_")[1];
+        if (!enabledServers.has(serverName)) disabledMCPServers.add(serverName);
+      }
+    }
+  }
 
-    // Disabled — soft-block with escalating messages
-    let callCount = 0;
-    return {
-      ...t,
-      execute: async () => {
-        callCount++;
-        const msg =
-          callCount === 1
-            ? `Tool '${t.name}' is disabled by the administrator. Do not retry — respond without it.`
-            : `SYSTEM BLOCK: Tool '${t.name}' is disabled. You have called it ${callCount} times. Stop immediately and respond without it.`;
-        return { content: [{ type: "text", text: msg }], details: {} };
-      },
-    };
+  // No stored tool config AND no MCP restrictions = full access
+  if (!stored[agentId] && disabledMCPServers.size === 0) return allTools;
+
+  const enabled = new Set(getEnabledTools(agentId));
+
+  return allTools.map((t) => {
+    // Locked tools — always pass through
+    if (locked.has(t.name)) return t;
+
+    // MCP tools — check server-level access
+    if (t.name.startsWith("mcp_")) {
+      const serverName = t.name.split("_")[1];
+      if (disabledMCPServers.has(serverName)) {
+        return _softBlock(t);
+      }
+      // If no tool-level config stored, pass MCP tools through
+      if (!stored[agentId]) return t;
+    }
+
+    // Tool-level config — check if enabled
+    if (!stored[agentId] || enabled.has(t.name)) return t;
+
+    return _softBlock(t);
   });
+}
+
+function _softBlock(t: any) {
+  let callCount = 0;
+  return {
+    ...t,
+    execute: async () => {
+      callCount++;
+      const msg =
+        callCount === 1
+          ? `Tool '${t.name}' is disabled by the administrator. Do not retry — respond without it.`
+          : `SYSTEM BLOCK: Tool '${t.name}' is disabled. You have called it ${callCount} times. Stop immediately and respond without it.`;
+      return { content: [{ type: "text", text: msg }], details: {} };
+    },
+  };
 }
