@@ -582,8 +582,7 @@ async function startServer(doStartupReset: boolean): Promise<void> {
   if (CLI_MODE) {
     printBanner();
   } else {
-    console.log("  OCTO VEC started. Dashboard will open in your browser.");
-    console.log("  Press Ctrl+C to stop.\n");
+    console.log("  Press Ctrl+C to stop.");
   }
 
   // 13. Interactive readline loop (CLI mode only)

@@ -7,7 +7,7 @@ import type { Employee, MessageFlowEntry } from "../types";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-interface NodeData { key: string; name: string; initials: string; x: number; y: number }
+interface NodeData { key: string; name: string; initials: string; x: number; y: number; isHub?: boolean }
 interface EdgeData { from: string; to: string; lastActivity: number; count: number }
 
 function getInitials(name: string): string {
@@ -18,8 +18,12 @@ function getInitials(name: string): string {
 }
 
 function buildNodes(emps: Employee[], cx: number, cy: number, radius: number): NodeData[] {
-  return emps.map((emp, i) => {
-    const angle = (2 * Math.PI * i) / emps.length - Math.PI / 2;
+  const centerIdx = emps.findIndex(e => e.role?.toLowerCase() === "pm" || e.role?.toLowerCase().includes("manager"));
+  const hub = centerIdx >= 0 ? emps[centerIdx] : null;
+  const ring = hub ? emps.filter((_, i) => i !== centerIdx) : emps;
+
+  const nodes: NodeData[] = ring.map((emp, i) => {
+    const angle = (2 * Math.PI * i) / ring.length - Math.PI / 2;
     return {
       key: emp.agent_key,
       name: emp.name.split(" ")[0],
@@ -28,6 +32,12 @@ function buildNodes(emps: Employee[], cx: number, cy: number, radius: number): N
       y: cy + radius * Math.sin(angle),
     };
   });
+
+  if (hub) {
+    nodes.push({ key: hub.agent_key, name: hub.name.split(" ")[0], initials: getInitials(hub.name), x: cx, y: cy, isHub: true });
+  }
+
+  return nodes;
 }
 
 function buildEdges(flow: MessageFlowEntry[]): EdgeData[] {
@@ -103,6 +113,7 @@ export default function NetworkPanel() {
   const activeRef = useRef<Set<string>>(new Set());
   const zoomRef = useRef(1);
   const themeRef = useRef<ThemePalette>(readTheme());
+  const somaRRef = useRef(22);
 
   const { activeAgents: activeMap } = useAgentStream();
   const { employees } = useEmployees();
@@ -133,9 +144,17 @@ export default function NetworkPanel() {
     canvas.height = rect.height * dpr;
     canvas.style.width = `${rect.width}px`;
     canvas.style.height = `${rect.height}px`;
+    const n = emps.length;
+    const somaR = n === 0 ? 22 : Math.max(12, Math.min(22, Math.floor(200 / Math.max(n, 1))));
+    // Shift center up slightly to account for name labels rendered below each node
     const cx = rect.width / 2;
-    const cy = rect.height / 2 - 10;
-    const radius = Math.min(rect.width / 2, rect.height / 2) * 0.38;
+    const cy = rect.height / 2 - (somaR + 14) / 2;
+    const pad = somaR + 32;
+    const maxR = Math.min(cx - pad, cy - pad);
+    // Radius = 1.2× minimum packing, capped at 50% of available space
+    const circumR = n > 1 ? (n * (somaR * 2 + somaR * 2)) / (2 * Math.PI) : 0;
+    const radius = n <= 1 ? 0 : Math.min(maxR * 0.50, Math.max(circumR * 1.2, maxR * 0.25));
+    somaRRef.current = somaR;
     nodesRef.current = buildNodes(emps, cx, cy, radius);
   }, [emps]);
 
@@ -189,35 +208,60 @@ export default function NetworkPanel() {
       const edges = edgesRef.current;
       const nodeMap = new Map(nodes.map((n) => [n.key, n]));
       const active = activeRef.current;
-      const SOMA_R = 22;
+      const SOMA_R = somaRRef.current;
       const IMPULSE_WINDOW = 20_000;
 
       // ── Dendrites ──
+      // With many agents the full O(n²) mesh becomes noise — only draw real edges.
+      // With few agents (≤8) also draw faint adjacent-ring connections for aesthetics.
       const connectedPairs = new Set<string>();
       for (const edge of edges) connectedPairs.add(`${edge.from}:${edge.to}`);
 
+      // ── Layer 1: Ghost mesh — all possible connections at near-invisible opacity ──
+      // Every agent CAN speak to every other agent; we show all edges as latent potential.
+      // Very low opacity keeps it from becoming visual noise.
+      const recentPairs = new Set<string>();
+      for (const edge of edges) {
+        if (now - edge.lastActivity < 20_000) recentPairs.add(`${edge.from}:${edge.to}`);
+      }
+
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
-          const a = nodes[i];
-          const b = nodes[j];
-          const connected = connectedPairs.has(`${a.key}:${b.key}`) || connectedPairs.has(`${b.key}:${a.key}`);
-
-          const mx = (a.x + b.x) / 2;
-          const my = (a.y + b.y) / 2;
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
+          const a = nodes[i], b = nodes[j];
+          const isRecent = recentPairs.has(`${a.key}:${b.key}`) || recentPairs.has(`${b.key}:${a.key}`);
+          if (isRecent) continue; // drawn brighter in layer 2
+          const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+          const dx = b.x - a.x, dy = b.y - a.y;
           const len = Math.sqrt(dx * dx + dy * dy);
-          const nx = -dy / len;
-          const ny = dx / len;
-          const curveAmt = len * (connected ? 0.04 : 0.02);
-
+          const nx = -dy / len, ny = dx / len;
+          // Hub spokes slightly more visible than ring-to-ring edges
+          const isSpoke = a.isHub || b.isHub;
           ctx.beginPath();
           ctx.moveTo(a.x, a.y);
-          ctx.quadraticCurveTo(mx + nx * curveAmt, my + ny * curveAmt, b.x, b.y);
-          ctx.strokeStyle = connected ? rgba(T.muted, 0.12) : rgba(T.border, 0.08);
-          ctx.lineWidth = connected ? 1.2 : 0.5;
+          ctx.quadraticCurveTo(mx + nx * len * 0.03, my + ny * len * 0.03, b.x, b.y);
+          ctx.strokeStyle = rgba(T.border, isSpoke ? 0.10 : 0.04);
+          ctx.lineWidth = isSpoke ? 0.8 : 0.4;
           ctx.stroke();
         }
+      }
+
+      // ── Layer 2: Active message-flow edges — pop above the ghost mesh ──
+      for (const edge of edges) {
+        const a = nodeMap.get(edge.from);
+        const b = nodeMap.get(edge.to);
+        if (!a || !b) continue;
+        const age = now - edge.lastActivity;
+        const fade = Math.max(0.06, 0.22 * Math.max(0, 1 - age / 60_000));
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        const nx = -dy / len, ny = dx / len;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.quadraticCurveTo(mx + nx * len * 0.04, my + ny * len * 0.04, b.x, b.y);
+        ctx.strokeStyle = rgba(T.accent, fade);
+        ctx.lineWidth = age < 20_000 ? 1.2 : 0.8;
+        ctx.stroke();
       }
 
       // ── Impulses ──
@@ -277,12 +321,31 @@ export default function NetworkPanel() {
       // ── Nodes ──
       for (const node of nodes) {
         const firing = active.has(node.key);
+        const r = node.isHub ? SOMA_R + 8 : SOMA_R;
+        const pulse = 0.5 + 0.5 * Math.sin(now / 400);
 
-        if (firing) {
-          const pulse = 0.5 + 0.5 * Math.sin(now / 400);
-          const glowR = SOMA_R + 10 + 4 * pulse;
+        if (node.isHub) {
+          // Hub: always-on accent ring + subtle steady glow
+          const glowR = r + 14 + 3 * pulse;
+          const grad = ctx.createRadialGradient(node.x, node.y, r * 0.4, node.x, node.y, glowR);
+          grad.addColorStop(0, rgba(T.accent, 0.14 + 0.06 * pulse));
+          grad.addColorStop(0.5, rgba(T.accent, 0.05));
+          grad.addColorStop(1, rgba(T.accent, 0));
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, glowR, 0, Math.PI * 2);
+          ctx.fillStyle = grad;
+          ctx.fill();
 
-          const grad = ctx.createRadialGradient(node.x, node.y, SOMA_R * 0.5, node.x, node.y, glowR);
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = rgba(T.bg, 0.95);
+          ctx.fill();
+          ctx.strokeStyle = rgba(T.accent, firing ? 0.7 + 0.2 * pulse : 0.45 + 0.15 * pulse);
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        } else if (firing) {
+          const glowR = r + 10 + 4 * pulse;
+          const grad = ctx.createRadialGradient(node.x, node.y, r * 0.5, node.x, node.y, glowR);
           grad.addColorStop(0, rgba(T.accent, 0.12 + 0.08 * pulse));
           grad.addColorStop(0.6, rgba(T.accent, 0.04 + 0.03 * pulse));
           grad.addColorStop(1, rgba(T.accent, 0));
@@ -292,37 +355,31 @@ export default function NetworkPanel() {
           ctx.fill();
 
           ctx.beginPath();
-          ctx.arc(node.x, node.y, SOMA_R, 0, Math.PI * 2);
+          ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
           ctx.fillStyle = rgba(T.bg, 0.95);
           ctx.fill();
-
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, SOMA_R, 0, Math.PI * 2);
           ctx.strokeStyle = rgba(T.accent, 0.4 + 0.2 * pulse);
           ctx.lineWidth = 1.5;
           ctx.stroke();
         } else {
           ctx.beginPath();
-          ctx.arc(node.x, node.y, SOMA_R, 0, Math.PI * 2);
+          ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
           ctx.fillStyle = rgba(T.muted, 0.06);
           ctx.fill();
-
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, SOMA_R, 0, Math.PI * 2);
           ctx.strokeStyle = rgba(T.border, 0.3);
           ctx.lineWidth = 1;
           ctx.stroke();
         }
 
-        ctx.font = "500 11px 'Inter', sans-serif";
+        ctx.font = `${node.isHub ? 600 : 500} ${node.isHub ? 12 : 11}px 'Inter', sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = firing ? rgba(T.text, 0.85) : rgba(T.muted, 0.4);
+        ctx.fillStyle = node.isHub ? rgba(T.text, 0.9) : (firing ? rgba(T.text, 0.85) : rgba(T.muted, 0.4));
         ctx.fillText(node.initials, node.x, node.y);
 
-        ctx.font = "400 10px 'Inter', sans-serif";
-        ctx.fillStyle = firing ? rgba(T.text, 0.6) : rgba(T.muted, 0.25);
-        ctx.fillText(node.name, node.x, node.y + SOMA_R + 12);
+        ctx.font = `400 ${node.isHub ? 11 : 10}px 'Inter', sans-serif`;
+        ctx.fillStyle = node.isHub ? rgba(T.text, 0.7) : (firing ? rgba(T.text, 0.6) : rgba(T.muted, 0.25));
+        ctx.fillText(node.name, node.x, node.y + r + 12);
       }
 
       ctx.restore();

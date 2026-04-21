@@ -4,7 +4,7 @@ import { useEmployees } from "../context/EmployeesContext";
 import {
   Search, X, List, Building2, ChevronUp, ChevronDown,
   AlertTriangle, Pencil, Check, User,
-  Wallet, CircleDollarSign, Target, Users,
+  Wallet, CircleDollarSign, Target, Users, Database, Cpu, CalendarDays,
 } from "lucide-react";
 import ConfirmModal from "../components/ConfirmModal";
 
@@ -281,14 +281,16 @@ export default function FinanceView() {
           display: "grid", gridTemplateColumns: GRID_COLS, gap: 8, padding: "10px 14px", alignItems: "center",
           background: as?.exceeded ? "var(--red-bg)" : as?.warning ? "var(--orange-bg)" : "transparent",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
-              width: 28, height: 28, borderRadius: 6, position: "relative",
-              background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0,
+              width: 32, height: 32, borderRadius: "50%", position: "relative",
+              background: `color-mix(in srgb, var(--accent) 15%, transparent)`,
+              border: "1.5px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 11, fontWeight: 700, color: "var(--accent)", flexShrink: 0,
             }}>
               {agent.agentId.slice(0, 2).toUpperCase()}
-              {as?.exceeded && <span style={{ position: "absolute", top: -3, right: -3, width: 8, height: 8, borderRadius: 4, background: "var(--red)", border: "1.5px solid var(--bg-card)" }} />}
+              {as?.exceeded && <span style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: 4, background: "var(--red)", border: "1.5px solid var(--bg-card)" }} />}
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{emp?.name?.split(" ")[0] ?? agent.agentId}</div>
@@ -432,9 +434,10 @@ export default function FinanceView() {
         </div>
         <button onClick={() => setConfirmReset(true)} disabled={resetting} style={{
           display: "flex", alignItems: "center", gap: 6,
-          padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 500,
+          padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 500,
           cursor: "pointer", fontFamily: "inherit", border: "1px solid var(--border)",
-          background: "transparent", color: "var(--text-secondary)",
+          background: "var(--bg-card)", color: "var(--text-secondary)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
         }}>
           {resetting ? "Resetting..." : "Reset Data"}
         </button>
@@ -442,43 +445,53 @@ export default function FinanceView() {
 
       {/* Summary cards */}
       {totals && (
-        <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 24, flexWrap: "wrap" }}>
           {[
-            { label: "Total Spent", value: fmtUsdShort(totals.totalCostUsd), sub: fmtUsd(totals.totalCostUsd), color: "var(--green)" },
-            { label: "Total Tokens", value: fmt(totals.totalTokens), sub: `${fmt(totals.totalInputTokens)} in / ${fmt(totals.totalOutputTokens)} out`, color: "var(--blue)" },
-            { label: "LLM Turns", value: fmt(totals.totalTurns), sub: `${agents.length} agents`, color: "var(--accent)" },
-            { label: "Session Start", value: new Date(totals.sessionStart).toLocaleDateString(), sub: timeSince(totals.sessionStart), color: "var(--orange)" },
+            { label: "Total Spent", value: fmtUsdShort(totals.totalCostUsd), sub: fmtUsd(totals.totalCostUsd), color: "var(--green)", icon: <CircleDollarSign size={32} /> },
+            { label: "Total Tokens", value: fmt(totals.totalTokens), sub: `${fmt(totals.totalInputTokens)} in · ${fmt(totals.totalOutputTokens)} out`, color: "var(--blue)", icon: <Database size={32} /> },
+            { label: "LLM Turns", value: fmt(totals.totalTurns), sub: `${agents.length} agents`, color: "var(--accent)", icon: <Cpu size={32} /> },
+            { label: "Session Start", value: new Date(totals.sessionStart).toLocaleDateString(), sub: timeSince(totals.sessionStart), color: "var(--orange)", icon: <CalendarDays size={32} /> },
           ].map(s => (
-            <div key={s.label} style={{ flex: "1 1 140px", padding: "14px 16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8 }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: s.color, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{s.label}</div>
-              <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{s.sub}</div>
+            <div key={s.label} style={{
+              flex: "1 1 150px", padding: "18px 20px",
+              background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14,
+              position: "relative", overflow: "hidden",
+            }}>
+              <div style={{ position: "absolute", top: 14, right: 14, color: s.color, opacity: 0.12 }}>{s.icon}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: s.color, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{s.value}</div>
+              <div style={{ fontSize: 12, color: "var(--text-primary)", marginTop: 6, fontWeight: 500 }}>{s.label}</div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{s.sub}</div>
             </div>
           ))}
         </div>
       )}
 
       {/* Tab bar: Usage | Budgets */}
-      <div style={{ display: "flex", gap: 0, marginBottom: 20, borderBottom: "2px solid var(--border)" }}>
-        {([
-          { id: "usage" as FinanceTab, label: "Usage & Costs", icon: <List size={14} /> },
-          { id: "budgets" as FinanceTab, label: "Budget Limits", icon: <Wallet size={14} /> },
-        ]).map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{
-            display: "flex", alignItems: "center", gap: 6,
-            padding: "10px 20px", border: "none", cursor: "pointer", fontFamily: "inherit",
-            fontSize: 13, fontWeight: tab === t.id ? 600 : 400,
-            color: tab === t.id ? "var(--accent)" : "var(--text-muted)",
-            background: "transparent",
-            borderBottom: tab === t.id ? "2px solid var(--accent)" : "2px solid transparent",
-            marginBottom: -2, transition: "color 0.1s",
-          }}>
-            {t.icon} {t.label}
-            {t.id === "budgets" && status?.org.exceeded && (
-              <span style={{ width: 6, height: 6, borderRadius: 3, background: "var(--red)", flexShrink: 0 }} />
-            )}
-          </button>
-        ))}
+      <div style={{ display: "flex", marginBottom: 24 }}>
+        <div style={{
+          display: "inline-flex", background: "var(--bg-secondary)", borderRadius: 10, padding: 4, gap: 2,
+        }}>
+          {([
+            { id: "usage" as FinanceTab, label: "Usage & Costs", icon: <List size={13} /> },
+            { id: "budgets" as FinanceTab, label: "Budget Limits", icon: <Wallet size={13} /> },
+          ]).map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "8px 18px", border: "none", cursor: "pointer", fontFamily: "inherit",
+              fontSize: 13, fontWeight: tab === t.id ? 600 : 400,
+              color: tab === t.id ? "var(--text-primary)" : "var(--text-muted)",
+              background: tab === t.id ? "var(--bg-card)" : "transparent",
+              borderRadius: 7,
+              boxShadow: tab === t.id ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+              transition: "background 0.15s, color 0.15s, box-shadow 0.15s",
+            }}>
+              {t.icon} {t.label}
+              {t.id === "budgets" && status?.org.exceeded && (
+                <span style={{ width: 6, height: 6, borderRadius: 3, background: "var(--red)", flexShrink: 0 }} />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ═══ USAGE TAB ═══ */}
@@ -486,13 +499,15 @@ export default function FinanceView() {
         <>
           {/* Toolbar */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-            <div style={{ display: "flex", borderRadius: 6, overflow: "hidden", border: "1px solid var(--border)", flexShrink: 0 }}>
+            <div style={{ display: "inline-flex", background: "var(--bg-secondary)", borderRadius: 8, padding: 3, gap: 2, flexShrink: 0 }}>
               {([["list", List, "List"], ["department", Building2, "Dept"]] as const).map(([mode, Icon, label]) => (
                 <button key={mode} onClick={() => setViewMode(mode)} title={`${label} view`} style={{
-                  display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 500, padding: "6px 12px",
-                  border: "none", cursor: "pointer", fontFamily: "inherit",
-                  background: viewMode === mode ? "var(--accent)" : "transparent",
-                  color: viewMode === mode ? "#fff" : "var(--text-muted)", transition: "all 0.08s",
+                  display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: viewMode === mode ? 600 : 400, padding: "6px 12px",
+                  border: "none", cursor: "pointer", fontFamily: "inherit", borderRadius: 6,
+                  background: viewMode === mode ? "var(--bg-card)" : "transparent",
+                  color: viewMode === mode ? "var(--text-primary)" : "var(--text-muted)",
+                  boxShadow: viewMode === mode ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                  transition: "background 0.12s, color 0.12s",
                 }}>
                   <Icon size={13} /> {label}
                 </button>
@@ -510,7 +525,7 @@ export default function FinanceView() {
           {/* Agent breakdown */}
           <div style={{ marginBottom: 20 }}>
             {filtered.length === 0 ? (
-              <div style={{ padding: 24, textAlign: "center", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text-muted)", fontSize: 13 }}>
+              <div style={{ padding: 24, textAlign: "center", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, color: "var(--text-muted)", fontSize: 13 }}>
                 {search ? "No agents match your search." : "No usage data yet. Agents will appear here once they start processing tasks."}
               </div>
             ) : viewMode === "department" ? (
@@ -521,17 +536,19 @@ export default function FinanceView() {
                   const deptTurns = deptAgents.reduce((s, a) => s + a.turns, 0);
                   return (
                     <div key={dept}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, paddingBottom: 6, borderBottom: "1px solid var(--border)" }}>
-                        <Building2 size={14} style={{ color: "var(--text-muted)" }} />
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, padding: "8px 12px", borderRadius: 8, background: "var(--bg-secondary)" }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 8, background: "color-mix(in srgb, var(--blue) 12%, transparent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Building2 size={14} style={{ color: "var(--blue)" }} />
+                        </div>
                         <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{dept}</span>
-                        <span style={{ fontSize: 11, color: "var(--text-muted)", background: "var(--bg-tertiary)", padding: "1px 8px", borderRadius: 5, fontFamily: "monospace" }}>{deptAgents.length}</span>
-                        <div style={{ marginLeft: "auto", display: "flex", gap: 14, fontSize: 11 }}>
+                        <span style={{ fontSize: 11, color: "var(--text-muted)", background: "var(--bg-card)", border: "1px solid var(--border)", padding: "1px 8px", borderRadius: 5, fontFamily: "monospace" }}>{deptAgents.length}</span>
+                        <div style={{ marginLeft: "auto", display: "flex", gap: 16, fontSize: 11, alignItems: "center" }}>
                           <span style={{ color: "var(--text-muted)" }}>{fmt(deptTurns)} turns</span>
                           <span style={{ color: "var(--text-muted)" }}>{fmt(deptTokens)} tokens</span>
-                          <span style={{ color: "var(--green)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{fmtUsdShort(deptCost)}</span>
+                          <span style={{ fontSize: 13, color: "var(--green)", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{fmtUsdShort(deptCost)}</span>
                         </div>
                       </div>
-                      <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+                      <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
                         {renderTableHeader()}
                         {deptAgents.map((a, i) => renderAgentRow(a, i === deptAgents.length - 1))}
                       </div>
@@ -540,7 +557,7 @@ export default function FinanceView() {
                 })}
               </div>
             ) : (
-              <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+              <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
                 {renderTableHeader()}
                 {filtered.map((a, i) => renderAgentRow(a, i === filtered.length - 1))}
               </div>
@@ -581,9 +598,11 @@ export default function FinanceView() {
           </div>
 
           {/* ── 1. Organization ────────────────────────────────────────────── */}
-          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
-              <CircleDollarSign size={16} style={{ color: "var(--accent)" }} />
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: "color-mix(in srgb, var(--accent) 12%, transparent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <CircleDollarSign size={16} style={{ color: "var(--accent)" }} />
+              </div>
               <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Organization</span>
               {status?.org.enabled && <StatusBadge exceeded={status.org.exceeded} warning={status.org.warning} />}
             </div>
@@ -623,11 +642,13 @@ export default function FinanceView() {
           </div>
 
           {/* ── 2. Departments ─────────────────────────────────────────────── */}
-          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
-              <Building2 size={16} style={{ color: "var(--blue)" }} />
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: "color-mix(in srgb, var(--blue) 12%, transparent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Building2 size={16} style={{ color: "var(--blue)" }} />
+              </div>
               <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Departments</span>
-              <span style={{ fontSize: 11, color: "var(--text-muted)", background: "var(--bg-tertiary)", padding: "1px 8px", borderRadius: 5 }}>{allDepts.length}</span>
+              <span style={{ fontSize: 11, color: "var(--text-muted)", background: "var(--bg-secondary)", border: "1px solid var(--border)", padding: "1px 8px", borderRadius: 5 }}>{allDepts.length}</span>
             </div>
             {allDepts.length === 0 ? (
               <div style={{ padding: "20px", color: "var(--text-muted)", fontSize: 12, fontStyle: "italic" }}>No departments found in roster.</div>
@@ -650,11 +671,13 @@ export default function FinanceView() {
           </div>
 
           {/* ── 3. Agents ─────────────────────────────────────────────────── */}
-          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
-              <Users size={16} style={{ color: "var(--green)" }} />
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: "color-mix(in srgb, var(--green) 12%, transparent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Users size={16} style={{ color: "var(--green)" }} />
+              </div>
               <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Agents</span>
-              <span style={{ fontSize: 11, color: "var(--text-muted)", background: "var(--bg-tertiary)", padding: "1px 8px", borderRadius: 5 }}>{agents.length}</span>
+              <span style={{ fontSize: 11, color: "var(--text-muted)", background: "var(--bg-secondary)", border: "1px solid var(--border)", padding: "1px 8px", borderRadius: 5 }}>{agents.length}</span>
             </div>
             {agents.length === 0 ? (
               <div style={{ padding: "20px", color: "var(--text-muted)", fontSize: 12, fontStyle: "italic" }}>No agents with usage data yet.</div>

@@ -12,7 +12,7 @@ You talk to the PM. They handle the rest. No meetings. Just tentacles.
 [![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-[Landing Page](https://octovec.ai) · [Discord](https://discord.gg/spdRmufS) · [Twitter](https://x.com/OctoVec_ai) · [LinkedIn](https://www.linkedin.com/in/octo-vec-9883073b4/)
+[Landing Page](https://octovec.ai) · [Discord](https://discord.gg/spdRmufS) · [Twitter](https://x.com/OctoVec_ai)
 
 <br/>
 
@@ -63,56 +63,56 @@ All tasks completed. Your coffee is getting cold.
 
 #### Management
 
-| Role | What They Do |
-|---|---|
+| Role                | What They Do                                                            |
+| ------------------- | ----------------------------------------------------------------------- |
 | **Project Manager** | The octopus in charge. Breaks down tasks, assigns work, tracks progress |
-| **Product Owner** | Backlog prioritization, user stories, stakeholder alignment |
-| **Scrum Master** | Sprint planning, standup facilitation, agile process management |
+| **Product Owner**   | Backlog prioritization, user stories, stakeholder alignment             |
+| **Scrum Master**    | Sprint planning, standup facilitation, agile process management         |
 
 #### Engineering
 
-| Role | What They Do |
-|---|---|
-| **Senior Developer** | Full-stack production code (Python, JS, TS), tests, bug fixes |
-| **Frontend Developer** | React, Vue, Angular — UI components, responsive layouts, state management |
-| **Backend Developer** | APIs, microservices, databases, server-side logic |
-| **Mobile Developer** | React Native, Flutter — cross-platform mobile apps |
-| **Solutions Architect** | System design, database schemas, API contracts, tech stack decisions |
-| **DevOps Engineer** | CI/CD pipelines, Dockerfiles, Kubernetes, deployment configs |
-| **SRE** | Monitoring, incident response, reliability, performance optimization |
+| Role                    | What They Do                                                              |
+| ----------------------- | ------------------------------------------------------------------------- |
+| **Senior Developer**    | Full-stack production code (Python, JS, TS), tests, bug fixes             |
+| **Frontend Developer**  | React, Vue, Angular — UI components, responsive layouts, state management |
+| **Backend Developer**   | APIs, microservices, databases, server-side logic                         |
+| **Mobile Developer**    | React Native, Flutter — cross-platform mobile apps                        |
+| **Solutions Architect** | System design, database schemas, API contracts, tech stack decisions      |
+| **DevOps Engineer**     | CI/CD pipelines, Dockerfiles, Kubernetes, deployment configs              |
+| **SRE**                 | Monitoring, incident response, reliability, performance optimization      |
 
 #### Data & AI
 
-| Role | What They Do |
-|---|---|
-| **Data Engineer** | ETL pipelines, data warehousing, streaming architectures |
+| Role                       | What They Do                                                     |
+| -------------------------- | ---------------------------------------------------------------- |
+| **Data Engineer**          | ETL pipelines, data warehousing, streaming architectures         |
 | **Database Administrator** | Schema design, query optimization, backup strategies, migrations |
-| **ML/AI Engineer** | Model training, inference pipelines, embeddings, RAG systems |
-| **Data Analyst** | Dashboards, metrics, SQL queries, business intelligence reports |
+| **ML/AI Engineer**         | Model training, inference pipelines, embeddings, RAG systems     |
+| **Data Analyst**           | Dashboards, metrics, SQL queries, business intelligence reports  |
 
 #### Quality & Security
 
-| Role | What They Do |
-|---|---|
-| **QA Engineer** | Test plans, test cases, reviews scan reports, validates deliverables |
-| **Security Engineer** | Vulnerability scans, code audits, OWASP compliance, threat modeling |
-| **Compliance Officer** | Regulatory compliance, policy enforcement, audit trails |
+| Role                   | What They Do                                                         |
+| ---------------------- | -------------------------------------------------------------------- |
+| **QA Engineer**        | Test plans, test cases, reviews scan reports, validates deliverables |
+| **Security Engineer**  | Vulnerability scans, code audits, OWASP compliance, threat modeling  |
+| **Compliance Officer** | Regulatory compliance, policy enforcement, audit trails              |
 
 #### Research & Documentation
 
-| Role | What They Do |
-|---|---|
-| **Business Analyst** | Turns vague requests into crystal-clear requirements and user stories |
-| **Research Specialist** | Technology research, best practices, benchmarks, comparison reports |
-| **Technical Writer** | API docs, READMEs, user guides, architecture decision records |
-| **UI/UX Designer** | Wireframes, design systems, user flows, accessibility audits |
+| Role                    | What They Do                                                          |
+| ----------------------- | --------------------------------------------------------------------- |
+| **Business Analyst**    | Turns vague requests into crystal-clear requirements and user stories |
+| **Research Specialist** | Technology research, best practices, benchmarks, comparison reports   |
+| **Technical Writer**    | API docs, READMEs, user guides, architecture decision records         |
+| **UI/UX Designer**      | Wireframes, design systems, user flows, accessibility audits          |
 
 #### Operations
 
-| Role | What They Do |
-|---|---|
-| **Release Manager** | Release planning, versioning, changelog, deployment coordination |
-| **Support Engineer** | Issue triage, customer debugging, runbook creation |
+| Role                 | What They Do                                                     |
+| -------------------- | ---------------------------------------------------------------- |
+| **Release Manager**  | Release planning, versioning, changelog, deployment coordination |
+| **Support Engineer** | Issue triage, customer debugging, runbook creation               |
 
 ---
 
@@ -175,24 +175,24 @@ All tasks completed. Your coffee is getting cold.
 
 Most AI coding tools give you a fast code generator. OCTO VEC gives you **a whole company** — named agents with distinct roles, persistent memory, and a real-time dashboard to watch them work.
 
-| Feature | Copilot | Cursor | Devin | OpenHands | MetaGPT | ChatDev | **OCTO VEC** |
-|---------|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| Multi-agent team | — | Yes | — | Yes | Yes | Yes | **Yes (24 roles)** |
-| Named role simulation (PM, BA, QA, Security…) | — | — | — | — | Partial | Partial | **Yes** |
-| Three-tier memory (STM/LTM/SLTM) | — | — | — | — | — | — | **Yes** |
-| Daily lifecycle (Sunset/Sunrise) | — | — | — | — | — | — | **Yes** |
-| Built-in security scanning (SAST/SCA/Secrets) | Yes | — | — | — | — | — | **Yes** |
-| Auto-compaction | — | Yes | — | Partial | — | — | **Yes** |
-| Multi-channel (CLI + 16 platforms) | — | — | Slack | Slack | — | — | **Yes (17)** |
-| Real-time web dashboard | — | — | Yes | Yes | — | — | **Yes (10 views)** |
-| Mobile app (Android) | — | — | — | — | — | — | **Yes** |
-| Self-hosted, vendor-agnostic | — | — | — | Yes | Yes | Yes | **Yes** |
-| MCP support | Yes | Yes | Yes | Yes | — | — | **Yes** |
-| Per-agent cost tracking | — | — | — | — | — | — | **Yes** |
-| Dynamic agent hiring/firing | — | — | — | — | — | — | **Yes** |
-| Agent groups & team chat | — | — | — | — | — | — | **Yes** |
-| Web terminal in dashboard | — | — | Yes | Yes | — | — | **Yes** |
-| QR code mobile pairing | — | — | — | — | — | — | **Yes** |
+| Feature                                       | Copilot | Cursor | Devin | OpenHands | MetaGPT | ChatDev |    **OCTO VEC**    |
+| --------------------------------------------- | :-----: | :----: | :---: | :-------: | :-----: | :-----: | :----------------: |
+| Multi-agent team                              |    —    |  Yes   |   —   |    Yes    |   Yes   |   Yes   | **Yes (24 roles)** |
+| Named role simulation (PM, BA, QA, Security…) |    —    |   —    |   —   |     —     | Partial | Partial |      **Yes**       |
+| Three-tier memory (STM/LTM/SLTM)              |    —    |   —    |   —   |     —     |    —    |    —    |      **Yes**       |
+| Daily lifecycle (Sunset/Sunrise)              |    —    |   —    |   —   |     —     |    —    |    —    |      **Yes**       |
+| Built-in security scanning (SAST/SCA/Secrets) |   Yes   |   —    |   —   |     —     |    —    |    —    |      **Yes**       |
+| Auto-compaction                               |    —    |  Yes   |   —   |  Partial  |    —    |    —    |      **Yes**       |
+| Multi-channel (CLI + 16 platforms)            |    —    |   —    | Slack |   Slack   |    —    |    —    |    **Yes (17)**    |
+| Real-time web dashboard                       |    —    |   —    |  Yes  |    Yes    |    —    |    —    | **Yes (10 views)** |
+| Mobile app (Android)                          |    —    |   —    |   —   |     —     |    —    |    —    |      **Yes**       |
+| Self-hosted, vendor-agnostic                  |    —    |   —    |   —   |    Yes    |   Yes   |   Yes   |      **Yes**       |
+| MCP support                                   |   Yes   |  Yes   |  Yes  |    Yes    |    —    |    —    |      **Yes**       |
+| Per-agent cost tracking                       |    —    |   —    |   —   |     —     |    —    |    —    |      **Yes**       |
+| Dynamic agent hiring/firing                   |    —    |   —    |   —   |     —     |    —    |    —    |      **Yes**       |
+| Agent groups & team chat                      |    —    |   —    |   —   |     —     |    —    |    —    |      **Yes**       |
+| Web terminal in dashboard                     |    —    |   —    |  Yes  |    Yes    |    —    |    —    |      **Yes**       |
+| QR code mobile pairing                        |    —    |   —    |   —   |     —     |    —    |    —    |      **Yes**       |
 
 ---
 
@@ -284,18 +284,18 @@ Arjun will analyze the request, break it into tasks, and delegate to the right s
 
 The web dashboard gives you full visibility and control. Access it at the URL printed on startup (includes an authentication key).
 
-| View | What It Shows |
-|------|---------------|
-| **Overview** | Task stats (total, in-progress, completed, failed), active agents, system health |
-| **Kanban** | Task board with columns: Todo, In Progress, Done, Failed, Cancelled |
-| **Live** | Real-time agent activity — streaming LLM output, tool calls, agent thinking |
-| **Events** | Audit trail of all system events, filterable by agent and type |
-| **Snoop** | Peek into any agent's inbox — see inter-agent messages as they flow |
+| View          | What It Shows                                                                     |
+| ------------- | --------------------------------------------------------------------------------- |
+| **Overview**  | Task stats (total, in-progress, completed, failed), active agents, system health  |
+| **Kanban**    | Task board with columns: Todo, In Progress, Done, Failed, Cancelled               |
+| **Live**      | Real-time agent activity — streaming LLM output, tool calls, agent thinking       |
+| **Events**    | Audit trail of all system events, filterable by agent and type                    |
+| **Snoop**     | Peek into any agent's inbox — see inter-agent messages as they flow               |
 | **Directory** | Employee roster — hire new agents, enable/disable, configure models, manage roles |
-| **Chat** | Message history with agents. Create groups for team conversations |
-| **Network** | Visual graph of agent-to-agent communication patterns |
-| **Finance** | Token usage and cost tracking per agent, per session |
-| **Settings** | Model providers, API keys, channel credentials, MCP servers, tool config |
+| **Chat**      | Message history with agents. Create groups for team conversations                 |
+| **Network**   | Visual graph of agent-to-agent communication patterns                             |
+| **Finance**   | Token usage and cost tracking per agent, per session                              |
+| **Settings**  | Model providers, API keys, channel credentials, MCP servers, tool config          |
 
 ### Themes
 
@@ -310,25 +310,25 @@ Three built-in themes — switch from the sidebar:
 
 Talk to your PM from anywhere. All 17 channels route messages to the same PM agent. Configure any channel from **Dashboard > Settings > Channels** or via `.env` variables.
 
-| Channel | Protocol | Status |
-|---------|----------|--------|
-| **CLI** | Built-in terminal | Default |
-| **Telegram** | grammy | Stable |
-| **Slack** | Bolt (Socket Mode) | Stable |
-| **Discord** | discord.js (Gateway) | Stable |
-| **WhatsApp** | Baileys (Web) | Stable |
-| **Microsoft Teams** | Bot Framework | Stable |
-| **Matrix** | matrix-bot-sdk | Stable |
-| **Signal** | signal-cli REST | Stable |
-| **LINE** | @line/bot-sdk | Stable |
-| **IRC** | irc-framework | Stable |
-| **Twitch** | tmi.js | Stable |
-| **Nostr** | nostr-tools | Stable |
-| **Google Chat** | Webhook | Stable |
-| **Mattermost** | REST API | Stable |
-| **Feishu / Lark** | Bot API | Stable |
-| **Nextcloud Talk** | REST API | Stable |
-| **Synology Chat** | Webhook | Stable |
+| Channel             | Protocol             | Status  |
+| ------------------- | -------------------- | ------- |
+| **CLI**             | Built-in terminal    | Default |
+| **Telegram**        | grammy               | Stable  |
+| **Slack**           | Bolt (Socket Mode)   | Stable  |
+| **Discord**         | discord.js (Gateway) | Stable  |
+| **WhatsApp**        | Baileys (Web)        | Stable  |
+| **Microsoft Teams** | Bot Framework        | Stable  |
+| **Matrix**          | matrix-bot-sdk       | Stable  |
+| **Signal**          | signal-cli REST      | Stable  |
+| **LINE**            | @line/bot-sdk        | Stable  |
+| **IRC**             | irc-framework        | Stable  |
+| **Twitch**          | tmi.js               | Stable  |
+| **Nostr**           | nostr-tools          | Stable  |
+| **Google Chat**     | Webhook              | Stable  |
+| **Mattermost**      | REST API             | Stable  |
+| **Feishu / Lark**   | Bot API              | Stable  |
+| **Nextcloud Talk**  | REST API             | Stable  |
+| **Synology Chat**   | Webhook              | Stable  |
 
 ### CLI (Default)
 
@@ -391,19 +391,19 @@ Works in both the authorized channel and direct messages.
 
 ## CLI Commands
 
-| Command | Description |
-|---------|-------------|
-| `/board` | View the task board (Kanban-style from SQLite) |
-| `/queue` | View PM's message inbox |
-| `/events` | Last 20 system events |
-| `/dir` | Employee directory with status and skills |
-| `/org` | Org chart showing reporting hierarchy |
-| `/message <agent> <text>` | Send a direct message to any agent |
-| `/interrupt <agent> [reason]` | Stop a running agent mid-task |
-| `/forget` | Clear PM conversation history |
-| `/live` | Toggle live message queue monitor |
-| `/reset` | Full company reset (requires confirmation) |
-| `/quit` | Exit the system |
+| Command                       | Description                                    |
+| ----------------------------- | ---------------------------------------------- |
+| `/board`                      | View the task board (Kanban-style from SQLite) |
+| `/queue`                      | View PM's message inbox                        |
+| `/events`                     | Last 20 system events                          |
+| `/dir`                        | Employee directory with status and skills      |
+| `/org`                        | Org chart showing reporting hierarchy          |
+| `/message <agent> <text>`     | Send a direct message to any agent             |
+| `/interrupt <agent> [reason]` | Stop a running agent mid-task                  |
+| `/forget`                     | Clear PM conversation history                  |
+| `/live`                       | Toggle live message queue monitor              |
+| `/reset`                      | Full company reset (requires confirmation)     |
+| `/quit`                       | Exit the system                                |
 
 Any text that doesn't start with `/` is sent directly to the PM (Arjun).
 
@@ -413,20 +413,20 @@ Any text that doesn't start with `/` is sent directly to the PM (Arjun).
 
 ### Essential Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `VEC_MODEL_PROVIDER` | LLM provider (`groq`, `openai`, `anthropic`, `google`, etc.) | `groq` |
-| `VEC_MODEL` | Model identifier | `moonshotai/kimi-k2-instruct-0905` |
-| `VEC_THINKING_LEVEL` | Extended thinking (`off`, `minimal`, `low`, `medium`, `high`, `xhigh`) | `off` |
-| `VEC_WORKSPACE` | Root workspace directory | `./workspace` |
-| `VEC_CLI_ENABLED` | Enable terminal interface (`1`/`0`) | `1` |
-| `VEC_DASHBOARD_PORT` | Dashboard HTTP port | `3000` |
-| `VEC_PM_PROACTIVE_ENABLED` | PM auto-monitors events and sends status updates | `0` |
-| `VEC_PM_PROACTIVE_INTERVAL_SECS` | How often PM checks events (seconds) | `30` |
-| `VEC_POST_TASK_SCANS` | Auto-run security scans after coding tasks | `1` |
-| `VEC_DEBOUNCE_MS` | Message batching window (ms) | `1500` |
-| `VEC_CONTEXT_WINDOW` | Model context window size (tokens) | `128000` |
-| `VEC_COMPACT_THRESHOLD` | Auto-compact when exceeding this fraction of context | `0.75` |
+| Variable                         | Description                                                            | Default                            |
+| -------------------------------- | ---------------------------------------------------------------------- | ---------------------------------- |
+| `VEC_MODEL_PROVIDER`             | LLM provider (`groq`, `openai`, `anthropic`, `google`, etc.)           | `groq`                             |
+| `VEC_MODEL`                      | Model identifier                                                       | `moonshotai/kimi-k2-instruct-0905` |
+| `VEC_THINKING_LEVEL`             | Extended thinking (`off`, `minimal`, `low`, `medium`, `high`, `xhigh`) | `off`                              |
+| `VEC_WORKSPACE`                  | Root workspace directory                                               | `./workspace`                      |
+| `VEC_CLI_ENABLED`                | Enable terminal interface (`1`/`0`)                                    | `1`                                |
+| `VEC_DASHBOARD_PORT`             | Dashboard HTTP port                                                    | `3000`                             |
+| `VEC_PM_PROACTIVE_ENABLED`       | PM auto-monitors events and sends status updates                       | `0`                                |
+| `VEC_PM_PROACTIVE_INTERVAL_SECS` | How often PM checks events (seconds)                                   | `30`                               |
+| `VEC_POST_TASK_SCANS`            | Auto-run security scans after coding tasks                             | `1`                                |
+| `VEC_DEBOUNCE_MS`                | Message batching window (ms)                                           | `1500`                             |
+| `VEC_CONTEXT_WINDOW`             | Model context window size (tokens)                                     | `128000`                           |
+| `VEC_COMPACT_THRESHOLD`          | Auto-compact when exceeding this fraction of context                   | `0.75`                             |
 
 ### Provider API Keys
 
@@ -490,11 +490,11 @@ Agents don't start from scratch every session.
 
 ### Three Tiers
 
-| Tier | Name | Lifespan | Purpose |
-|------|------|----------|---------|
-| **SLTM** | Super Long-Term Memory | Permanent | Core identity, lasting patterns, hard-won knowledge |
-| **LTM** | Long-Term Memory | Daily journals | End-of-day summaries — what happened, what was learned |
-| **STM** | Short-Term Memory | Current session | Active conversation history |
+| Tier     | Name                   | Lifespan        | Purpose                                                |
+| -------- | ---------------------- | --------------- | ------------------------------------------------------ |
+| **SLTM** | Super Long-Term Memory | Permanent       | Core identity, lasting patterns, hard-won knowledge    |
+| **LTM**  | Long-Term Memory       | Daily journals  | End-of-day summaries — what happened, what was learned |
+| **STM**  | Short-Term Memory      | Current session | Active conversation history                            |
 
 ### Session Lifecycle
 
@@ -518,11 +518,11 @@ When an agent's conversation approaches the context window limit, older messages
 
 When `VEC_POST_TASK_SCANS=1` (default), security scans run automatically after coding tasks complete.
 
-| Scanner | What It Detects | Tool |
-|---------|-----------------|------|
-| **SAST** | Code vulnerabilities, OWASP Top 10, injection flaws | Semgrep |
-| **Secrets** | Leaked API keys, tokens, passwords, private keys | Gitleaks |
-| **SCA** | Vulnerable dependencies, known CVEs in libraries | Trivy |
+| Scanner          | What It Detects                                     | Tool                 |
+| ---------------- | --------------------------------------------------- | -------------------- |
+| **SAST**         | Code vulnerabilities, OWASP Top 10, injection flaws | Semgrep              |
+| **Secrets**      | Leaked API keys, tokens, passwords, private keys    | Gitleaks             |
+| **SCA**          | Vulnerable dependencies, known CVEs in libraries    | Trivy                |
 | **Code Quality** | Code smells, coverage gaps, quality gate violations | SonarQube (optional) |
 
 Scans run via Docker containers. Reports saved to `workspace/shared/reports/` and sent to the QA agent for review.
@@ -637,20 +637,20 @@ octo-vec/
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Runtime** | Node.js + TypeScript (tsx) |
+| Layer               | Technology                                                                     |
+| ------------------- | ------------------------------------------------------------------------------ |
+| **Runtime**         | Node.js + TypeScript (tsx)                                                     |
 | **Agent Framework** | [@mariozechner/pi-agent-core](https://github.com/nicholasgasior/pi-agent-core) |
-| **LLM Providers** | 22+ via pi-ai (Groq, OpenAI, Anthropic, Google, Mistral, etc.) |
-| **Database** | SQLite (better-sqlite3) |
-| **Dashboard** | React + Vite |
-| **Real-Time** | Server-Sent Events (SSE) |
-| **HTTP** | Express |
-| **Telegram** | grammy |
-| **Slack** | @slack/bolt (Socket Mode) |
-| **Discord** | discord.js (Gateway WebSocket) |
-| **Security Scans** | Semgrep, Gitleaks, Trivy, SonarQube (Docker) |
-| **MCP** | @modelcontextprotocol/sdk |
+| **LLM Providers**   | 22+ via pi-ai (Groq, OpenAI, Anthropic, Google, Mistral, etc.)                 |
+| **Database**        | SQLite (better-sqlite3)                                                        |
+| **Dashboard**       | React + Vite                                                                   |
+| **Real-Time**       | Server-Sent Events (SSE)                                                       |
+| **HTTP**            | Express                                                                        |
+| **Telegram**        | grammy                                                                         |
+| **Slack**           | @slack/bolt (Socket Mode)                                                      |
+| **Discord**         | discord.js (Gateway WebSocket)                                                 |
+| **Security Scans**  | Semgrep, Gitleaks, Trivy, SonarQube (Docker)                                   |
+| **MCP**             | @modelcontextprotocol/sdk                                                      |
 
 ---
 
@@ -709,7 +709,6 @@ VEC_COMPACT_KEEP_RECENT=20
 
 - [Discord](https://discord.gg/spdRmufS) — Join the community
 - [Twitter / X](https://x.com/OctoVec_ai) — Follow the octopus
-- [LinkedIn](https://www.linkedin.com/in/octo-vec-9883073b4/) — Professional tentacles
 - [Instagram](https://www.instagram.com/octovec.ai/) — Behind the scenes
 - [Threads](https://www.threads.com/@octovec.ai) — More tentacles
 

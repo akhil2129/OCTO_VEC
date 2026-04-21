@@ -28,6 +28,7 @@ export type View =
   | "finance"
   | "reminders"
   | "workspace"
+  | "editor"
   | "settings";
 
 interface NavItem { id: View; label: string; icon: React.ReactNode }

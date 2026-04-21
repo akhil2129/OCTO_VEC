@@ -288,7 +288,7 @@ class DiscordChannel implements VECChannel {
   async start(): Promise<void> {
     try {
       await this.client.login(this.botToken);
-      console.log(`  [Discord] Bot started — channel: ${this.channelId} + DMs`);
+      console.log(`  Discord connected`);
     } catch (err) {
       console.error("[Discord] Failed to start:", (err as Error)?.message ?? err);
     }

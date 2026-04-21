@@ -19,9 +19,8 @@ export function buildAgentRegistry(deps: SpecialistDeps): Map<string, VECAgent> 
   for (const entry of entries) {
     const agent = new BaseSpecialistAgent(entry, deps);
     registry.set(entry.agent_id, agent);
-    console.log(`  [AR] Registered: ${entry.employee_id} ${entry.name} (${entry.agent_id}) [${entry.tool_profile}]`);
   }
 
-  console.log(`  [AR] ${registry.size} specialist agent(s) registered from roster.`);
+  console.log(`  ${registry.size} agents ready`);
   return registry;
 }

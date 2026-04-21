@@ -255,64 +255,64 @@ export default function ChatView({ perAgentUnread = {}, onAgentRead }: {
     <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
       {/* ── Sidebar ── */}
       <div style={{
-        width: 270, flexShrink: 0,
+        width: 260, flexShrink: 0,
         borderRight: "1px solid var(--border)",
         display: "flex", flexDirection: "column",
+        background: "var(--bg-primary)",
       }}>
-        <div className="page-header" style={{ paddingBottom: 8 }}>
-          <div className="page-title">Chat</div>
-          <div className="page-subtitle">Direct messages with agents</div>
-        </div>
+        {/* Header */}
+        <div style={{ padding: "20px 16px 12px", flexShrink: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>Messages</div>
 
-        {/* Tabs: Agents | Groups */}
-        <div style={{
-          display: "flex", gap: 0, padding: "0 12px 8px",
-          borderBottom: "1px solid var(--border)",
-        }}>
-          {(["agents", "groups"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setSidebarTab(tab)}
-              style={{
-                flex: 1, padding: "6px 0", border: "none",
-                background: "transparent", cursor: "pointer", fontFamily: "inherit",
-                fontSize: 12, fontWeight: sidebarTab === tab ? 600 : 400,
-                color: sidebarTab === tab ? "var(--accent)" : "var(--text-muted)",
-                borderBottom: sidebarTab === tab ? "2px solid var(--accent)" : "2px solid transparent",
-                transition: "all 0.15s",
-              }}
-            >
-              {tab === "agents" ? "Agents" : "Groups"}
-            </button>
-          ))}
+          {/* Tabs */}
+          <div style={{
+            display: "flex", gap: 4,
+            background: "var(--bg-secondary)", borderRadius: 8, padding: 3,
+          }}>
+            {(["agents", "groups"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setSidebarTab(tab)}
+                style={{
+                  flex: 1, padding: "5px 0", border: "none",
+                  borderRadius: 6,
+                  background: sidebarTab === tab ? "var(--bg-card)" : "transparent",
+                  cursor: "pointer", fontFamily: "inherit",
+                  fontSize: 12, fontWeight: sidebarTab === tab ? 600 : 400,
+                  color: sidebarTab === tab ? "var(--text-primary)" : "var(--text-muted)",
+                  boxShadow: sidebarTab === tab ? "var(--shadow)" : "none",
+                  transition: "all 0.15s",
+                }}
+              >
+                {tab === "agents" ? "Agents" : "Groups"}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* ── Agents tab ── */}
         {sidebarTab === "agents" && (
           <>
             {/* Agent search */}
-            <div style={{ padding: "8px 12px 4px" }}>
+            <div style={{ padding: "0 16px 8px" }}>
               <div style={{
-                display: "flex", alignItems: "center", gap: 6,
-                background: "var(--bg-tertiary)", border: "1px solid var(--border)",
-                borderRadius: 18, padding: "5px 12px",
+                display: "flex", alignItems: "center", gap: 8,
+                background: "var(--bg-secondary)", border: "1px solid var(--border)",
+                borderRadius: 10, padding: "7px 12px",
               }}>
                 <Search size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                 <input
                   value={agentSearch}
                   onChange={(e) => setAgentSearch(e.target.value)}
-                  placeholder="Search agents..."
+                  placeholder="Search..."
                   style={{
                     flex: 1, border: "none", outline: "none",
                     background: "transparent", color: "var(--text-primary)",
-                    fontSize: 12, fontFamily: "inherit",
+                    fontSize: 13, fontFamily: "inherit",
                   }}
                 />
                 {agentSearch && (
-                  <button
-                    onClick={() => setAgentSearch("")}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex", padding: 0 }}
-                  >
+                  <button onClick={() => setAgentSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex", padding: 0 }}>
                     <X size={11} />
                   </button>
                 )}
@@ -320,7 +320,7 @@ export default function ChatView({ perAgentUnread = {}, onAgentRead }: {
             </div>
 
             {/* Agent list */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "4px 10px 10px" }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: "4px 8px 10px" }}>
               {filteredAgents.length === 0 ? (
                 <div style={{ padding: 16, textAlign: "center", fontSize: 12, color: "var(--text-muted)" }}>
                   No agents match "{agentSearch}"
@@ -340,28 +340,36 @@ export default function ChatView({ perAgentUnread = {}, onAgentRead }: {
                       key={ag.agent_key}
                       onClick={() => selectAgent(ag.agent_key)}
                       style={{
-                        width: "100%", display: "flex", alignItems: "center", gap: 12,
-                        padding: "10px 12px", border: "none", borderRadius: 10,
+                        width: "100%", display: "flex", alignItems: "center", gap: 10,
+                        padding: "9px 10px", border: "none", borderRadius: 10,
                         background: sel ? "var(--bg-hover)" : "transparent",
                         cursor: "pointer", textAlign: "left", fontFamily: "inherit",
-                        transition: "background 0.08s", marginBottom: 2,
+                        transition: "background 0.08s", marginBottom: 1,
                       }}
                       onMouseEnter={(e) => { if (!sel) e.currentTarget.style.background = "var(--bg-hover)"; }}
                       onMouseLeave={(e) => { if (!sel) e.currentTarget.style.background = "transparent"; }}
                     >
                       <div style={{ position: "relative", flexShrink: 0 }}>
                         <div style={{
-                          width: 36, height: 36, borderRadius: 10,
-                          background: color, opacity: 0.9,
+                          width: 40, height: 40, borderRadius: "50%",
+                          background: color,
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 12, fontWeight: 600, color: "#fff",
+                          fontSize: 13, fontWeight: 700, color: "#fff",
+                          boxShadow: sel ? `0 0 0 2px var(--bg-primary), 0 0 0 3.5px ${color}` : "none",
                         }}>
                           {initials}
                         </div>
-                        {hasApproval && (
+                        {typing && (
                           <span style={{
-                            position: "absolute", top: -2, right: -2,
-                            width: 10, height: 10, borderRadius: 5,
+                            position: "absolute", bottom: 0, right: 0,
+                            width: 11, height: 11, borderRadius: "50%",
+                            background: "var(--green)", border: "2px solid var(--bg-primary)",
+                          }} />
+                        )}
+                        {!typing && hasApproval && (
+                          <span style={{
+                            position: "absolute", bottom: 0, right: 0,
+                            width: 11, height: 11, borderRadius: "50%",
                             background: "var(--orange)", border: "2px solid var(--bg-primary)",
                             boxShadow: "0 0 4px rgba(245,158,11,0.5)",
                           }} />
@@ -485,12 +493,13 @@ export default function ChatView({ perAgentUnread = {}, onAgentRead }: {
       </div>
 
       {/* ── Chat area ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--bg-card)" }}>
         {/* Chat header */}
         <div style={{
-          padding: "14px 24px",
+          padding: "14px 20px",
           borderBottom: "1px solid var(--border)",
           display: "flex", alignItems: "center", gap: 12, flexShrink: 0,
+          background: "var(--bg-primary)",
         }}>
           {isGroupMode ? (
             <>
@@ -546,17 +555,17 @@ export default function ChatView({ perAgentUnread = {}, onAgentRead }: {
           ) : (
             <>
               <div style={{
-                width: 32, height: 32, borderRadius: 9,
-                background: agentColor, opacity: 0.9,
+                width: 36, height: 36, borderRadius: "50%",
+                background: agentColor,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 11, fontWeight: 600, color: "#fff",
+                fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0,
               }}>
                 {agentInitials}
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{agentName}</div>
-                <div style={{ fontSize: 12, color: isTyping ? "var(--green)" : "var(--text-muted)" }}>
-                  {isTyping ? "typing..." : agentRole}
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.2 }}>{agentName}</div>
+                <div style={{ fontSize: 12, color: isTyping ? "var(--green)" : "var(--text-muted)", marginTop: 1 }}>
+                  {isTyping ? "● typing..." : agentRole}
                 </div>
               </div>
             </>
@@ -665,8 +674,8 @@ export default function ChatView({ perAgentUnread = {}, onAgentRead }: {
 
         {/* Messages */}
         <div style={{
-          flex: 1, overflowY: "auto", padding: "20px 24px",
-          display: "flex", flexDirection: "column", gap: 4,
+          flex: 1, overflowY: "auto", padding: "24px 20px",
+          display: "flex", flexDirection: "column", gap: 2,
         }}>
           {displayEntries.length === 0 ? (
             <div style={{
@@ -730,18 +739,18 @@ export default function ChatView({ perAgentUnread = {}, onAgentRead }: {
                     <div style={{
                       display: "flex",
                       justifyContent: isUser ? "flex-end" : "flex-start",
-                      marginTop: sameSender ? 2 : 10,
+                      marginTop: sameSender ? 2 : 14,
                       alignItems: "flex-end", gap: 8,
                     }}>
-                      {/* Agent avatar — only in group chats */}
-                      {!isUser && isGroupMode && (
-                        <div style={{ width: 28, flexShrink: 0 }}>
+                      {/* Agent avatar */}
+                      {!isUser && (
+                        <div style={{ width: 32, flexShrink: 0, marginBottom: 2 }}>
                           {!sameSender && (
                             <div style={{
-                              width: 28, height: 28, borderRadius: 8,
-                              background: msgColor, opacity: 0.9,
+                              width: 32, height: 32, borderRadius: "50%",
+                              background: msgColor,
                               display: "flex", alignItems: "center", justifyContent: "center",
-                              fontSize: 9, fontWeight: 700, color: "#fff",
+                              fontSize: 10, fontWeight: 700, color: "#fff",
                             }}>
                               {msgInitials}
                             </div>
@@ -749,32 +758,37 @@ export default function ChatView({ perAgentUnread = {}, onAgentRead }: {
                         </div>
                       )}
                       <div style={{
-                        maxWidth: "65%",
+                        maxWidth: "68%",
                         display: "flex", flexDirection: "column",
                         alignItems: isUser ? "flex-end" : "flex-start",
                       }}>
-                        {/* Sender name — only in group chats */}
-                        {isGroupMode && !isUser && !sameSender && (
-                          <div style={{ fontSize: 11, fontWeight: 600, color: msgColor, marginBottom: 2, paddingInline: 4 }}>
-                            {msgName}
+                        {/* Sender name */}
+                        {!isUser && !sameSender && (
+                          <div style={{ fontSize: 11, fontWeight: 600, color: msgColor, marginBottom: 4, paddingInline: 2 }}>
+                            {isGroupMode ? msgName : agentName.split(" ")[0]}
                           </div>
                         )}
                         <div className={isUser ? undefined : "md-content"} style={{
-                          padding: "8px 14px 6px",
+                          padding: "10px 14px 8px",
                           borderRadius: isUser
-                            ? (sameSender ? "14px 14px 4px 14px" : "14px 14px 4px 14px")
-                            : (sameSender ? "14px 14px 14px 4px" : "14px 14px 14px 4px"),
-                          background: isUser ? "var(--chat-user-bubble, var(--accent))" : "var(--chat-agent-bubble, var(--bg-tertiary))",
+                            ? (sameSender ? "18px 6px 6px 18px" : "18px 18px 6px 18px")
+                            : (sameSender ? "6px 18px 18px 6px" : "6px 18px 18px 6px"),
+                          background: isUser
+                            ? "var(--chat-user-bubble, var(--accent))"
+                            : "var(--bg-card)",
                           color: isUser ? "var(--chat-user-text, #fff)" : "var(--chat-agent-text, var(--text-primary))",
-                          fontSize: 13, lineHeight: 1.55,
+                          fontSize: 13.5, lineHeight: 1.6,
                           wordBreak: "break-word",
+                          border: isUser ? "none" : "1px solid var(--border)",
+                          boxShadow: isUser
+                            ? `0 2px 10px color-mix(in srgb, var(--accent) 22%, transparent)`
+                            : "none",
                         }}>
                           {isUser ? msgContent : <Markdown remarkPlugins={[remarkGfm]} components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> }}>{entry.message}</Markdown>}
-                          {/* Inline timestamp like WhatsApp */}
                           <div style={{
                             fontSize: 10, lineHeight: 1,
-                            color: isUser ? "var(--chat-ts-user, rgba(255,255,255,0.6))" : "var(--chat-ts-agent, var(--text-muted))",
-                            textAlign: "right", marginTop: 4,
+                            color: isUser ? "var(--chat-ts-user, rgba(255,255,255,0.55))" : "var(--chat-ts-agent, var(--text-muted))",
+                            textAlign: "right", marginTop: 5,
                           }}>
                             {new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </div>
@@ -787,30 +801,28 @@ export default function ChatView({ perAgentUnread = {}, onAgentRead }: {
 
               {/* Typing indicator */}
               {isTyping && !searchOpen && (
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 8, marginTop: 10 }}>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 8, marginTop: 14 }}>
                   <div style={{
-                    width: 28, height: 28, borderRadius: 8,
-                    background: chatHeaderColor, opacity: 0.9,
+                    width: 32, height: 32, borderRadius: "50%",
+                    background: chatHeaderColor,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 9, fontWeight: 700, color: "#fff",
+                    fontSize: 10, fontWeight: 700, color: "#fff", flexShrink: 0,
                   }}>
-                    {isGroupMode ? <Users size={12} /> : agentInitials}
+                    {isGroupMode ? <Users size={13} /> : chatHeaderInitials}
                   </div>
                   <div style={{
-                    padding: "10px 16px",
-                    borderRadius: "14px 14px 14px 4px",
-                    background: "var(--bg-tertiary)",
-                    display: "flex", gap: 4, alignItems: "center",
+                    padding: "12px 16px",
+                    borderRadius: "6px 18px 18px 6px",
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border)",
+                    display: "flex", gap: 5, alignItems: "center",
                   }}>
                     {[0, 1, 2].map((n) => (
-                      <span
-                        key={n}
-                        style={{
-                          width: 5, height: 5, borderRadius: "50%",
-                          background: "var(--text-muted)",
-                          animation: `pulse-dot 1.2s ease-in-out ${n * 0.2}s infinite`,
-                        }}
-                      />
+                      <span key={n} style={{
+                        width: 6, height: 6, borderRadius: "50%",
+                        background: "var(--text-muted)",
+                        animation: `pulse-dot 1.2s ease-in-out ${n * 0.2}s infinite`,
+                      }} />
                     ))}
                   </div>
                 </div>
@@ -821,12 +833,13 @@ export default function ChatView({ perAgentUnread = {}, onAgentRead }: {
         </div>
 
         {/* ── Input bar ── */}
-        <div style={{ padding: "12px 24px 16px", flexShrink: 0 }}>
+        <div style={{ padding: "12px 20px 18px", flexShrink: 0, background: "var(--bg-primary)", borderTop: "1px solid var(--border)" }}>
           <div style={{
-            display: "flex", alignItems: "flex-end", gap: 8,
-            background: "var(--bg-tertiary)",
+            display: "flex", alignItems: "flex-end", gap: 10,
+            background: "var(--bg-card)",
             border: "1px solid var(--border)",
-            borderRadius: 24, padding: "6px 6px 6px 18px",
+            borderRadius: 16, padding: "10px 10px 10px 16px",
+            boxShadow: "var(--shadow)",
           }}>
             <textarea
               ref={inputRef}
@@ -838,8 +851,8 @@ export default function ChatView({ perAgentUnread = {}, onAgentRead }: {
               style={{
                 flex: 1, border: "none", outline: "none", resize: "none",
                 background: "transparent", color: "var(--text-primary)",
-                fontSize: 14, lineHeight: 1.5, fontFamily: "inherit",
-                maxHeight: 120, overflowY: "auto", padding: "4px 0",
+                fontSize: 14, lineHeight: 1.55, fontFamily: "inherit",
+                maxHeight: 120, overflowY: "auto", padding: "2px 0",
               }}
               onInput={(e) => {
                 const el = e.currentTarget;
@@ -851,12 +864,12 @@ export default function ChatView({ perAgentUnread = {}, onAgentRead }: {
               onClick={() => void send()}
               disabled={!input.trim() || sending}
               style={{
-                width: 34, height: 34, borderRadius: "50%", border: "none",
-                background: input.trim() && !sending ? "var(--accent)" : "var(--bg-hover)",
+                width: 36, height: 36, borderRadius: "50%", border: "none",
+                background: input.trim() && !sending ? "var(--accent)" : "var(--bg-secondary)",
                 color: input.trim() && !sending ? "#fff" : "var(--text-muted)",
                 cursor: input.trim() && !sending ? "pointer" : "default",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0, transition: "background 0.15s",
+                flexShrink: 0, transition: "background 0.15s, color 0.15s",
               }}
             >
               <ArrowUp size={16} strokeWidth={2.5} />

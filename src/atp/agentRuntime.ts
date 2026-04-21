@@ -63,9 +63,8 @@ export class AgentRuntime {
       const agent = new BaseSpecialistAgent(entry, deps);
       this.handles.set(entry.agent_id, { agent, loop: null, entry });
       this.allAgents.set(entry.agent_id, agent);
-      console.log(`  [AR] Registered: ${entry.employee_id} ${entry.name} (${entry.agent_id}) [${entry.tool_profile}]`);
     }
-    console.log(`  [AR] ${this.handles.size} specialist agent(s) registered from roster.`);
+    console.log(`  ${this.handles.size} agents ready`);
   }
 
   /** Get the specialist agent registry (excluding PM) for use by task dispatch. */

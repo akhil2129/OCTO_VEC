@@ -40,6 +40,7 @@ interface ProviderInfo {
   envKey: string;
   models: string[];
   iconUrl: string;
+  inputType?: "key" | "url";
 }
 
 interface ModelConfigData {
@@ -810,7 +811,7 @@ export default function SettingsView() {
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         {/* Quick stats */}
         {s && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             {[
               { label: "Company", value: s.system.companyName, color: "var(--accent)" },
               { label: "Provider", value: s.llm.provider, color: "var(--purple)" },
@@ -818,13 +819,13 @@ export default function SettingsView() {
               { label: "Dashboard", value: `:${s.system.dashboardPort}`, color: "var(--green)" },
             ].map((stat) => (
               <div key={stat.label} style={{
-                flex: "1 1 120px", padding: "14px 16px",
-                background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8,
+                flex: "1 1 120px", padding: "16px 18px",
+                background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12,
               }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: stat.color, lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: stat.color, lineHeight: 1.2, fontVariantNumeric: "tabular-nums", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {stat.value}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{stat.label}</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5 }}>{stat.label}</div>
               </div>
             ))}
           </div>
@@ -1475,39 +1476,14 @@ export default function SettingsView() {
             <button
               onClick={() => openIntegEdit(key)}
               style={{
-                padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 500,
-                border: "1px solid var(--border)", background: "var(--bg-hover)",
-                color: "var(--text-primary)", cursor: "pointer", fontFamily: "inherit",
+                padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                border: `1px solid ${color}`,
+                background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                color, cursor: "pointer", fontFamily: "inherit",
               }}
             >
               Configure
             </button>
-            {enabled && (
-              <button
-                onClick={() => toggleIntegration(key, true)}
-                style={{
-                  padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 500,
-                  border: "1px solid color-mix(in srgb, var(--red) 30%, transparent)",
-                  background: "color-mix(in srgb, var(--red) 8%, transparent)",
-                  color: "var(--red)", cursor: "pointer", fontFamily: "inherit",
-                }}
-              >
-                Disable
-              </button>
-            )}
-            {!enabled && (
-              <button
-                onClick={() => toggleIntegration(key, false)}
-                style={{
-                  padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 500,
-                  border: "1px solid color-mix(in srgb, var(--green) 30%, transparent)",
-                  background: "color-mix(in srgb, var(--green) 8%, transparent)",
-                  color: "var(--green)", cursor: "pointer", fontFamily: "inherit",
-                }}
-              >
-                Enable
-              </button>
-            )}
           </div>
         )}
 
@@ -1753,13 +1729,13 @@ export default function SettingsView() {
             { label: "Directory", value: String(MCP_DIRECTORY.length), color: "var(--text-muted)" },
           ].map((stat) => (
             <div key={stat.label} style={{
-              flex: "1 1 100px", padding: "14px 16px",
-              background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8,
+              flex: "1 1 100px", padding: "16px 18px",
+              background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12,
             }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: stat.color, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: stat.color, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
                 {stat.value}
               </div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{stat.label}</div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5 }}>{stat.label}</div>
             </div>
           ))}
         </div>
@@ -2968,7 +2944,7 @@ export default function SettingsView() {
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         {/* Sidebar */}
         <div style={{
-          width: 190, flexShrink: 0, padding: "12px 12px 20px",
+          width: 196, flexShrink: 0, padding: "8px 10px 20px",
           borderRight: "1px solid var(--border)",
           display: "flex", flexDirection: "column", gap: 2,
           overflow: "auto",
@@ -2983,27 +2959,36 @@ export default function SettingsView() {
                 onClick={() => setActiveSection(item.key)}
                 style={{
                   display: "flex", alignItems: "center", gap: 10,
-                  padding: "9px 12px", borderRadius: 7,
+                  padding: "9px 12px", borderRadius: 8,
                   border: "none",
                   background: isActive ? "var(--bg-hover)" : "transparent",
                   color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
                   fontSize: 13, fontWeight: isActive ? 500 : 400,
                   cursor: "pointer", fontFamily: "inherit",
                   textAlign: "left", width: "100%",
-                  transition: "background 0.08s, color 0.08s",
+                  transition: "background 0.1s, color 0.1s",
                 }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "var(--bg-secondary)"; }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
               >
-                <span style={{ color: isActive ? item.color : "var(--text-muted)", display: "flex", transition: "color 0.08s" }}>
+                <span style={{
+                  width: 28, height: 28, borderRadius: 7, flexShrink: 0,
+                  background: isActive ? `color-mix(in srgb, ${item.color} 12%, transparent)` : "transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: isActive ? item.color : "var(--text-muted)",
+                  transition: "background 0.1s, color 0.1s",
+                }}>
                   {item.icon}
                 </span>
                 <span style={{ flex: 1 }}>{item.label}</span>
                 {badge && (
                   <span style={{
-                    fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4,
-                    background: isActive ? `color-mix(in srgb, ${item.color} 12%, transparent)` : "var(--bg-tertiary)",
+                    fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 5,
+                    background: isActive ? `color-mix(in srgb, ${item.color} 12%, transparent)` : "var(--bg-secondary)",
                     color: isActive ? item.color : "var(--text-muted)",
+                    border: `1px solid ${isActive ? `color-mix(in srgb, ${item.color} 20%, transparent)` : "var(--border)"}`,
                     fontVariantNumeric: "tabular-nums",
-                    transition: "background 0.08s, color 0.08s",
+                    transition: "background 0.1s, color 0.1s",
                   }}>
                     {badge}
                   </span>
@@ -3102,9 +3087,26 @@ function APIKeyModal({ provider, onClose, onSave, saving }: {
   onSave: (key: string) => void;
   saving: boolean;
 }) {
-  const [key, setKey] = useState("");
+  const isUrl = provider.inputType === "url";
+  const [key, setKey] = useState(isUrl ? "http://localhost:11434" : "");
   const [showKey, setShowKey] = useState(false);
   const [modelSearch, setModelSearch] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMsg, setRefreshMsg] = useState("");
+
+  async function handleOllamaRefresh() {
+    setRefreshing(true);
+    setRefreshMsg("");
+    try {
+      const res = await fetch("/api/ollama-refresh", { method: "POST" });
+      const data = await res.json();
+      setRefreshMsg(data.ok ? `Found ${data.models.length} model${data.models.length !== 1 ? "s" : ""}` : (data.error ?? "Failed to reach Ollama"));
+    } catch {
+      setRefreshMsg("Could not connect to Ollama");
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const filteredModels = provider.models.filter(m =>
     m.toLowerCase().includes(modelSearch.toLowerCase())
@@ -3119,6 +3121,8 @@ function APIKeyModal({ provider, onClose, onSave, saving }: {
           position: "fixed", inset: 0, zIndex: 100,
           background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
           WebkitBackdropFilter: "blur(8px)",
+          animation: "modal-backdrop-in 0.18s ease-out",
+          willChange: "opacity",
         }}
       />
       {/* Modal — larger */}
@@ -3128,8 +3132,9 @@ function APIKeyModal({ provider, onClose, onSave, saving }: {
         background: "var(--bg-secondary)", border: "1px solid var(--border)",
         borderRadius: 16, width: 560, maxWidth: "92vw", maxHeight: "85vh",
         boxShadow: "0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px var(--border)",
-        overflow: "hidden", animation: "fade-in 0.12s ease-out",
+        overflow: "hidden", animation: "modal-in 0.18s cubic-bezier(0.34, 1.2, 0.64, 1)",
         display: "flex", flexDirection: "column",
+        willChange: "transform, opacity",
       }}>
         {/* Header */}
         <div style={{
@@ -3261,20 +3266,20 @@ function APIKeyModal({ provider, onClose, onSave, saving }: {
             </div>
           )}
 
-          {/* Key input */}
+          {/* Key / URL input */}
           <div>
             <label style={{
               fontSize: 12, fontWeight: 500, color: "var(--text-secondary)",
               marginBottom: 8, display: "block",
             }}>
-              API Key
+              {isUrl ? "Base URL" : "API Key"}
             </label>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <input
                 value={key}
                 onChange={e => setKey(e.target.value)}
-                placeholder={`Paste your ${provider.name} API key...`}
-                type={showKey ? "text" : "password"}
+                placeholder={isUrl ? "http://localhost:11434" : `Paste your ${provider.name} API key...`}
+                type={isUrl ? "text" : (showKey ? "text" : "password")}
                 autoFocus
                 style={{
                   ...inputStyle, flex: 1, fontSize: 13, fontFamily: "monospace",
@@ -3282,21 +3287,50 @@ function APIKeyModal({ provider, onClose, onSave, saving }: {
                 }}
                 onKeyDown={e => e.key === "Enter" && key.trim() && onSave(key)}
               />
-              <button
-                onClick={() => setShowKey(s => !s)}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  width: 38, height: 38, borderRadius: 8, flexShrink: 0,
-                  border: "1px solid var(--border)", background: "var(--bg-tertiary)",
-                  color: showKey ? "var(--accent)" : "var(--text-muted)",
-                  cursor: "pointer", padding: 0, transition: "color 0.12s",
-                }}
-                title={showKey ? "Hide key" : "Show key"}
-              >
-                <Eye size={14} />
-              </button>
+              {!isUrl && (
+                <button
+                  onClick={() => setShowKey(s => !s)}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    width: 38, height: 38, borderRadius: 8, flexShrink: 0,
+                    border: "1px solid var(--border)", background: "var(--bg-tertiary)",
+                    color: showKey ? "var(--accent)" : "var(--text-muted)",
+                    cursor: "pointer", padding: 0, transition: "color 0.12s",
+                  }}
+                  title={showKey ? "Hide key" : "Show key"}
+                >
+                  <Eye size={14} />
+                </button>
+              )}
             </div>
+            {isUrl && (
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>
+                For a remote server: <code style={{ fontFamily: "monospace" }}>http://192.168.1.100:11434</code>
+              </div>
+            )}
           </div>
+
+          {/* Ollama: Refresh Models button */}
+          {isUrl && provider.configured && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button
+                onClick={handleOllamaRefresh}
+                disabled={refreshing}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "7px 14px", borderRadius: 8,
+                  border: "1px solid var(--border)", background: "var(--bg-tertiary)",
+                  color: "var(--text-secondary)", fontSize: 12, fontWeight: 500,
+                  cursor: refreshing ? "default" : "pointer",
+                  fontFamily: "inherit", opacity: refreshing ? 0.6 : 1,
+                }}
+              >
+                <RefreshCw size={12} style={refreshing ? { animation: "spin 1s linear infinite" } : {}} />
+                {refreshing ? "Refreshing..." : "Refresh Models"}
+              </button>
+              {refreshMsg && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{refreshMsg}</span>}
+            </div>
+          )}
 
           {/* Actions */}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
@@ -3317,7 +3351,7 @@ function APIKeyModal({ provider, onClose, onSave, saving }: {
                 opacity: saving ? 0.6 : 1, transition: "opacity 0.12s, background 0.12s",
               }}
             >
-              <Save size={13} /> {saving ? "Saving..." : "Save Key"}
+              <Save size={13} /> {saving ? "Saving..." : (isUrl ? "Save URL" : "Save Key")}
             </button>
           </div>
         </div>
@@ -3558,14 +3592,14 @@ function MCPDirectoryPanel({ activeServerNames, mcpConfig, mcpStatus, onAdd, onR
       )}
 
       {/* ── Search + Category filter ── */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <div style={{ position: "relative", flex: 1, minWidth: 160 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+        <div style={{ position: "relative", flex: "0 1 260px", minWidth: 140 }}>
           <Search size={13} style={{
             position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)",
             color: "var(--text-muted)", pointerEvents: "none",
           }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search servers..." style={{ ...inputStyle, paddingLeft: 30 }} />
+            placeholder="Search servers..." style={{ ...inputStyle, paddingLeft: 30, padding: "6px 10px 6px 30px", fontSize: 12, borderRadius: 8 }} />
         </div>
         <div style={{ width: 160, flexShrink: 0 }}>
           <Dropdown value={catFilter} onChange={v => setCatFilter(v as MCPCategory | "all")}

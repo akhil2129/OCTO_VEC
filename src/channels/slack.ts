@@ -328,7 +328,7 @@ class SlackChannel implements VECChannel {
   async start(): Promise<void> {
     try {
       await this.app.start();
-      console.log(`  [Slack] Bot started — channel: ${this.channelId} + DMs`);
+      console.log(`  Slack connected`);
     } catch (err) {
       console.error("[Slack] Failed to start:", (err as Error)?.message ?? err);
     }

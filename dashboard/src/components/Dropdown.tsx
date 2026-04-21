@@ -41,14 +41,14 @@ export default function Dropdown({
   }, [open]);
 
   return (
-    <div ref={ref} style={{ position: "relative", display: "inline-flex" }}>
+    <div ref={ref} style={{ position: "relative", display: "flex", width: "100%" }}>
       {/* Trigger */}
       <button
         onClick={() => setOpen((v) => !v)}
         style={{
           display: "flex", alignItems: "center", gap: 6,
-          padding: "5px 10px 5px 10px",
-          borderRadius: 8,
+          padding: "6px 10px",
+          borderRadius: 8, width: "100%",
           border: open ? "1px solid var(--accent)" : "1px solid var(--border)",
           background: "var(--bg-tertiary)",
           color: selected && selected.value !== options[0]?.value

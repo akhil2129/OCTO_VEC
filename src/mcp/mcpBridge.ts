@@ -135,7 +135,6 @@ export async function initMCP(): Promise<void> {
 
   const cfg = readConfig();
   if (!cfg || !cfg.mcpServers || Object.keys(cfg.mcpServers).length === 0) {
-    console.log("  [MCP] No servers configured (data/mcp-servers.json)");
     return;
   }
 

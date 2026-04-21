@@ -40,7 +40,8 @@
     "build:dashboard": "npm --prefix dashboard install && npm --prefix dashboard run build",
     "build": "npm run build:ts && npm run build:dashboard",
     "prepublishOnly": "npm run build",
-    "dashboard:dev": "npm --prefix dashboard run dev"
+    "dashboard:dev": "npm --prefix dashboard run dev",
+    "mcp": "tsx src/mcp/octoVecServer.ts"
   },
   "dependencies": {
     "@line/bot-sdk": "^10.6.0",

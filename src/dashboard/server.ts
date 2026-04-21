@@ -23,7 +23,7 @@ import cookieParser from "cookie-parser";
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync, mkdirSync } from "fs";
 import { networkInterfaces } from "os";
 import { join, resolve, sep } from "path";
-import { execFileSync, execSync, exec } from "child_process";
+import { execFileSync, execSync, exec, spawn } from "child_process";
 import { config, PACKAGE_ROOT, USER_DATA_DIR, setWorkspace } from "../config.js";
 import { getMaskedIntegrationConfig, saveIntegrationConfig } from "../integrations/integrationConfig.js";
 
@@ -44,10 +44,11 @@ import { getAllGroups, getGroup, addGroup, deleteGroup, markActiveGroupConversat
 import { getRosterEntry, getRoleTemplates } from "../ar/roster.js";
 import { AgentRuntime } from "../atp/agentRuntime.js";
 import { getMCPTools, reloadMCP } from "../mcp/mcpBridge.js";
-import { ActiveChannelState, EditorChannelState } from "../channels/activeChannel.js";
+import { ActiveChannelState } from "../channels/activeChannel.js";
 import type { VECAgent } from "../atp/inboxLoop.js";
 import { getAllUsage as getFinanceAllUsage, getTotals as getFinanceTotals, resetUsage as resetFinanceUsage, getBudgetConfig, setBudgetConfig, getBudgetStatus, setDepartmentMap } from "../atp/tokenTracker.js";
 import { getProviders, getModelConfig, setModelConfig, setAgentModel, getEffectiveModel, setProviderApiKey } from "../atp/modelConfig.js";
+import { refreshOllamaModels } from "../atp/ollamaConfig.js";
 import { saveChannelCredentials, getChannelConfigMasked, ALL_CHANNEL_IDS, isValidChannel, CHANNEL_LABELS, type ChannelId } from "../channels/channelConfig.js";
 import { channelManager } from "../channels/channelManager.js";
 import { createMobileRouter, getConnectedDevices, removePairedDevice, clearDeviceBlock } from "./mobileApi.js";
@@ -2514,6 +2515,22 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
   app.use(helmet(getHelmetOptions()));
   app.use(cors(getCorsOptions()));
   app.use(cookieParser());
+
+  // Auto-login: if the SPA is opened with a valid ?key= (e.g. the URL printed
+  // on startup), mint JWT cookies and redirect to a clean URL so the user
+  // never sees the login prompt.
+  app.use((req, res, next) => {
+    if (req.method !== "GET" || req.path.startsWith("/api/")) return next();
+    const provided = (req.query.key as string) ?? (req.query.KEY as string) ?? "";
+    if (!provided || provided !== getDashboardApiKey()) return next();
+    setAuthCookies(res);
+    const clean = { ...req.query };
+    delete clean.key;
+    delete clean.KEY;
+    const qs = new URLSearchParams(clean as Record<string, string>).toString();
+    res.redirect(req.path + (qs ? `?${qs}` : ""));
+  });
+
   app.use(authMiddleware);
   // Rate-limit mutation endpoints (POST/DELETE) only — 60 req/min
   const mutationLimiter = rateLimit(getMutationRateLimitOptions());
@@ -2571,7 +2588,24 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
 
   app.get("/api/auth/status", (req, res) => {
     const token = req.cookies?.[ACCESS_COOKIE];
-    res.json({ authenticated: !!(token && verifyAccessToken(token)) });
+    if (token && verifyAccessToken(token)) {
+      res.json({ authenticated: true });
+      return;
+    }
+    // Access expired/missing — try refresh token (valid up to 7d).
+    // If valid, mint a fresh access cookie transparently so reopening the
+    // dashboard the next day doesn't prompt for the key again.
+    const refreshToken = req.cookies?.vec_refresh;
+    if (refreshToken && verifyRefreshToken(refreshToken)) {
+      const access = signAccessToken();
+      res.cookie(ACCESS_COOKIE, access, {
+        httpOnly: true, sameSite: "strict", secure: false, path: "/",
+        maxAge: 60 * 60 * 1000,
+      });
+      res.json({ authenticated: true });
+      return;
+    }
+    res.json({ authenticated: false });
   });
 
   app.get("/api/tasks", (_req, res) => {
@@ -2692,48 +2726,6 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
     res.json({ ok: true, to: agentKey });
   });
 
-  // ── OCTO-EDIT Editor Chat ──────────────────────────────────────────────
-
-  /** Send message from Editor view — tagged with editor channel + project path. */
-  app.post("/api/editor-send", (req, res) => {
-    const { to, message, project } = req.body ?? {};
-    if (!to || typeof to !== "string" || !message || typeof message !== "string") {
-      res.status(400).json({ error: "to and message are required strings" }); return;
-    }
-    const agentKey = to.trim().toLowerCase();
-    if (!AGENT_DISPLAY_NAMES[agentKey] || agentKey === "user") {
-      res.status(400).json({ error: `Unknown agent: ${agentKey}` }); return;
-    }
-    const projectPath = typeof project === "string" ? project.trim() : "";
-    // Set channel to editor so replies route back here
-    ActiveChannelState.set("editor");
-    EditorChannelState.set(projectPath || null);
-    // Prefix message with project context so agent knows the workspace
-    const contextMsg = projectPath
-      ? `[OCTO-EDIT: ${projectPath}] ${message.trim()}`
-      : message.trim();
-    AgentMessageQueue.push("user", agentKey, "", contextMsg, "normal");
-    UserChatLog.log({
-      from: "user", to: agentKey, message: message.trim(),
-      channel: "editor", editor_project: projectPath || undefined,
-    });
-    clearActiveGroup(agentKey);
-    res.json({ ok: true, to: agentKey });
-  });
-
-  /** Poll editor chat messages — returns only editor-channel messages for a project. */
-  app.get("/api/editor-chat", (req, res) => {
-    const project = (req.query.project as string) ?? "";
-    const since = (req.query.since as string) ?? "";
-    const all = UserChatLog.getRecent(100);
-    let filtered = all.filter(e =>
-      e.channel === "editor" && e.editor_project === project
-    );
-    if (since) {
-      filtered = filtered.filter(e => e.timestamp > since);
-    }
-    res.json(filtered);
-  });
 
   // ── Agent Groups ────────────────────────────────────────────────────────
 
@@ -3088,37 +3080,6 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
     }
   });
 
-  // ── Installed editors detection ────────────────────────────────────────────
-  app.get("/api/editors", (_req, res) => {
-    const EDITORS: { id: string; name: string; cmd: string }[] = [
-      { id: "vscode",       name: "VS Code",        cmd: "code" },
-      { id: "cursor",       name: "Cursor",          cmd: "cursor" },
-      { id: "windsurf",     name: "Windsurf",        cmd: "windsurf" },
-      { id: "antigravity",  name: "Antigravity",     cmd: "antigravity" },
-      { id: "zed",          name: "Zed",             cmd: "zed" },
-      { id: "sublime",      name: "Sublime Text",    cmd: "subl" },
-      { id: "webstorm",     name: "WebStorm",        cmd: "webstorm" },
-      { id: "intellij",     name: "IntelliJ IDEA",   cmd: "idea" },
-      { id: "fleet",        name: "Fleet",            cmd: "fleet" },
-      { id: "atom",         name: "Atom",             cmd: "atom" },
-      { id: "notepadpp",    name: "Notepad++",        cmd: "notepad++" },
-      { id: "vim",          name: "Vim",              cmd: "vim" },
-      { id: "nvim",         name: "Neovim",           cmd: "nvim" },
-      { id: "emacs",        name: "Emacs",            cmd: "emacs" },
-    ];
-
-    const which = process.platform === "win32" ? "where" : "which";
-    const detected: { id: string; name: string; cmd: string }[] = [];
-
-    for (const editor of EDITORS) {
-      try {
-        execSync(`${which} ${editor.cmd}`, { timeout: 3000, stdio: "pipe" } as any);
-        detected.push({ id: editor.id, name: editor.name, cmd: editor.cmd });
-      } catch { /* not installed */ }
-    }
-
-    res.json({ editors: detected });
-  });
 
   // ── Docker availability check ──────────────────────────────────────────────
   app.get("/api/docker-status", (_req, res) => {
@@ -3679,6 +3640,25 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
     }
   });
 
+  app.get("/api/workspace-editors", (_req, res) => {
+    const CMDS: { id: string; name: string; cmd: string }[] = [
+      { id: "vscode",   name: "VS Code",   cmd: "code" },
+      { id: "cursor",   name: "Cursor",    cmd: "cursor" },
+      { id: "windsurf", name: "Windsurf",  cmd: "windsurf" },
+      { id: "zed",      name: "Zed",       cmd: "zed" },
+      { id: "vim",      name: "Vim",       cmd: "vim" },
+      { id: "nvim",     name: "Neovim",    cmd: "nvim" },
+    ];
+    const isWin = process.platform === "win32";
+    const found = CMDS.filter(e => {
+      try {
+        execSync(isWin ? `where ${e.cmd}` : `which ${e.cmd}`, { stdio: "ignore" });
+        return true;
+      } catch { return false; }
+    });
+    res.json(found.length > 0 ? found : [CMDS[0]]);
+  });
+
   app.post("/api/workspace-open", (req, res) => {
     const { path: relPath, editor } = req.body ?? {};
     if (!relPath) { res.status(400).json({ error: "path required" }); return; }
@@ -3689,22 +3669,29 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
       return;
     }
 
-    // Whitelist: only allow known editor commands to prevent command injection
     const ALLOWED_CMDS: Record<string, string> = {
       vscode: "code", cursor: "cursor", windsurf: "windsurf", antigravity: "antigravity",
       zed: "zed", sublime: "subl", webstorm: "webstorm", intellij: "idea", fleet: "fleet",
       atom: "atom", notepadpp: "notepad++", vim: "vim", nvim: "nvim", emacs: "emacs",
     };
     const editorCmd = ALLOWED_CMDS[editor] ?? "code";
-    const cmd = `${editorCmd} "${absPath}"`;
+    const isWin = process.platform === "win32";
 
-    exec(cmd, { timeout: 10_000 }, (err: any) => {
-      if (err) {
-        res.json({ ok: false, message: `Failed to open: ${err.message?.slice(0, 100)}` });
-      } else {
-        res.json({ ok: true });
-      }
-    });
+    try {
+      // On Windows, editors like `code`/`cursor` are .cmd files — spawn through shell with a
+      // single quoted command string so paths with spaces are preserved.
+      const child = isWin
+        ? spawn(`${editorCmd} "${absPath}"`, { detached: true, stdio: "ignore", shell: true, windowsHide: true })
+        : spawn(editorCmd, [absPath], { detached: true, stdio: "ignore" });
+      child.on("error", (err) => {
+        console.error(`[workspace-open] spawn error for ${editorCmd}:`, err.message);
+      });
+      child.unref();
+      res.json({ ok: true, editor: editorCmd, path: absPath });
+    } catch (err: any) {
+      console.error(`[workspace-open] failed to launch ${editorCmd}:`, err);
+      res.status(500).json({ ok: false, error: `Failed to launch ${editorCmd}: ${err.message ?? String(err)}` });
+    }
   });
 
   // ── Model Config: per-agent model overrides + provider priority ────────
@@ -3743,14 +3730,27 @@ export function startDashboardServer(runtime: AgentRuntime, port = config.dashbo
     res.json({ ok: true, effective: getEffectiveModel(agent_id) });
   });
 
-  app.post("/api/provider-key", (req, res) => {
+  app.post("/api/provider-key", async (req, res) => {
     const { provider, key } = req.body ?? {};
     if (!provider || typeof provider !== "string") {
       res.status(400).json({ error: "provider is required" });
       return;
     }
     setProviderApiKey(provider, key ?? "");
+    // For Ollama, wait for model refresh so the response includes the model list
+    if (provider === "ollama" && key) {
+      await refreshOllamaModels().catch(() => {});
+    }
     res.json({ ok: true, providers: getProviders() });
+  });
+
+  app.post("/api/ollama-refresh", async (_req, res) => {
+    try {
+      const models = await refreshOllamaModels();
+      res.json({ ok: true, models, providers: getProviders() });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message ?? "Failed to reach Ollama" });
+    }
   });
 
   // ── Channel configuration (all 16 channels) ──────────────────────────────

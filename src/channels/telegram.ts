@@ -277,7 +277,7 @@ class TelegramChannel implements VECChannel {
     };
 
     attempt(0);
-    console.log(`  [Telegram] Bot started — authorized chat: ${this.authorizedChatId}`);
+    console.log(`  Telegram connected`);
   }
 
   async stop(): Promise<void> {

@@ -13,6 +13,7 @@ import { getMessagingTools } from "../tools/shared/messagingTools.js";
 import { getDateTool } from "../tools/shared/dateTools.js";
 import { getWebTools } from "../tools/shared/webTools.js";
 import { getMCPTools } from "../mcp/mcpBridge.js";
+import { getClaudeTool } from "../tools/shared/claudeTool.js";
 import {
   getCodingTools,
   getReadOnlyTools,
@@ -125,6 +126,9 @@ export function buildToolset(
   tools.push(getDateTool());
   tools.push(...getWebTools());
   tools.push(...getMCPTools());
+
+  // 9. Claude Code bridge — any agent can delegate work to Claude
+  tools.push(getClaudeTool(agentId));
 
   return tools;
 }

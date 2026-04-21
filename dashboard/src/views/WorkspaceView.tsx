@@ -4,10 +4,9 @@ import {
   FolderOpen, File, ChevronRight, ChevronDown, GitBranch,
   RefreshCw, Search, FolderTree, Folder,
   FileText, FileCode, FileJson, Image, Package, Terminal,
-  Check, Copy, ExternalLink, ChevronUp, X,
+  Check, Copy, ExternalLink, ChevronUp, X, Maximize2,
 } from "lucide-react";
 import { usePolling, postApi } from "../hooks/useApi";
-import EditorView from "./EditorView";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -271,16 +270,9 @@ function OpenWithDropdown({
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export default function WorkspaceView() {
-  const [editorProject, setEditorProjectRaw] = useState<{ path: string; name: string } | null>(() => {
-    try { const s = localStorage.getItem("octo-edit-project"); return s ? JSON.parse(s) : null; } catch { return null; }
-  });
-  const setEditorProject = (v: { path: string; name: string } | null) => {
-    if (v) localStorage.setItem("octo-edit-project", JSON.stringify(v));
-    else localStorage.removeItem("octo-edit-project");
-    setEditorProjectRaw(v);
-  };
   const { data, refresh } = usePolling<WorkspaceTree>("/api/workspace-tree", 10000);
-  const [editors, setEditors] = useState<EditorInfo[]>([]);
+  const { data: editorsData } = usePolling<EditorInfo[]>("/api/workspace-editors", 30000);
+  const editors = editorsData ?? [];
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set(["projects", "shared", "agents"]));
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [filePreview, setFilePreview] = useState<FilePreview | null>(null);
@@ -291,13 +283,6 @@ export default function WorkspaceView() {
   const [fileSearchIdx, setFileSearchIdx] = useState(0);
   const [showFileSearch, setShowFileSearch] = useState(false);
   const previewScrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    fetch("/api/editors", { credentials: "include" })
-      .then(r => r.json())
-      .then(d => setEditors(d.editors ?? []))
-      .catch(() => {});
-  }, []);
 
   const loadFile = useCallback(async (path: string) => {
     setLoadingPreview(true);
@@ -322,7 +307,12 @@ export default function WorkspaceView() {
   }
 
   async function openInEditor(path: string, editorId: string) {
-    try { await postApi("/api/workspace-open", { path, editor: editorId }); } catch {}
+    try {
+      const r = await postApi("/api/workspace-open", { path, editor: editorId });
+      if (r && r.ok === false) console.warn("[openInEditor]", r.error ?? r.message);
+    } catch (e) {
+      console.warn("[openInEditor] request failed", e);
+    }
   }
 
   function copyPath(p: string) {
@@ -348,16 +338,6 @@ export default function WorkspaceView() {
   const projectEntries = tree?.projects?.entries ?? [];
   const totalFiles = tree ? Object.values(tree).reduce((s, sec) => s + countFiles(sec.entries), 0) : 0;
 
-  // ── OCTO-EDIT mode ─────────────────────────────────────────────────────
-  if (editorProject) {
-    return (
-      <EditorView
-        projectPath={editorProject.path}
-        projectName={editorProject.name}
-        onBack={() => setEditorProject(null)}
-      />
-    );
-  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
@@ -375,9 +355,10 @@ export default function WorkspaceView() {
           )}
           <button onClick={() => refresh()} style={{
             display: "flex", alignItems: "center", gap: 6,
-            padding: "6px 12px", borderRadius: 6, border: "1px solid var(--border)",
-            background: "transparent", color: "var(--text-secondary)",
-            fontSize: 12, cursor: "pointer", fontFamily: "inherit",
+            padding: "7px 14px", borderRadius: 8, border: "1px solid var(--border)",
+            background: "var(--bg-card)", color: "var(--text-secondary)",
+            fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
           }}>
             <RefreshCw size={13} /> Refresh
           </button>
@@ -396,7 +377,7 @@ export default function WorkspaceView() {
       </div>
 
       {/* Stats */}
-      <div style={{ padding: "0 28px 12px", display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ padding: "0 28px 16px", display: "flex", gap: 10, flexWrap: "wrap" }}>
         {[
           { label: "Projects", value: projectEntries.length, color: "var(--accent)" },
           { label: "Git Repos", value: projectEntries.filter(e => e.gitStatus?.isRepo).length, color: "var(--green)" },
@@ -404,28 +385,18 @@ export default function WorkspaceView() {
           { label: "Total Files", value: totalFiles, color: "var(--purple)" },
         ].map(s => (
           <div key={s.label} style={{
-            flex: "1 1 100px", padding: "10px 14px",
-            background: "var(--bg-primary)", border: "1px solid var(--border)", borderRadius: 8,
+            flex: "1 1 100px", padding: "14px 18px",
+            background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12,
           }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: s.color, fontVariantNumeric: "tabular-nums" }}>{s.value}</div>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{s.label}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: s.color, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{s.value}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5, fontWeight: 500 }}>{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Search */}
-      <div style={{ padding: "0 28px 12px" }}>
-        <div style={{ position: "relative" }}>
-          <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
-          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search files and folders..."
-            style={{
-              width: "100%", padding: "8px 12px 8px 32px", borderRadius: 8,
-              border: "1px solid var(--border)", background: "var(--bg-primary)",
-              color: "var(--text-primary)", fontSize: 13, fontFamily: "inherit",
-              outline: "none", boxSizing: "border-box",
-            }} />
-        </div>
+      <div style={{ padding: "0 28px 14px" }}>
+        <WorkspaceSearch value={searchQuery} onChange={setSearchQuery} />
       </div>
 
       {/* Main */}
@@ -447,20 +418,43 @@ export default function WorkspaceView() {
               return (
                 <div key={sectionId}>
                   {/* Section header */}
-                  <button onClick={() => toggleExpand(sectionId)} style={{
-                    display: "flex", alignItems: "center", gap: 8, width: "100%",
-                    padding: "6px 4px", border: "none", background: "transparent",
-                    color: "var(--text-primary)", cursor: "pointer", fontFamily: "inherit",
-                    fontSize: 12, fontWeight: 700, textAlign: "left", textTransform: "uppercase",
-                    letterSpacing: "0.04em",
-                  }}>
-                    {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                    <FolderTree size={13} style={{ color: isProjects ? "var(--accent)" : sectionId === "shared" ? "var(--blue)" : "var(--purple)" }} />
-                    {section.label}
-                    <span style={{ fontSize: 10, fontWeight: 500, color: "var(--text-muted)", textTransform: "none", letterSpacing: 0, marginLeft: 4 }}>
-                      {filtered.length} items
-                    </span>
-                  </button>
+                  {(() => {
+                    const secColor = isProjects ? "var(--accent)" : sectionId === "shared" ? "var(--blue)" : "var(--purple)";
+                    return (
+                      <button onClick={() => toggleExpand(sectionId)} style={{
+                        display: "flex", alignItems: "center", gap: 10, width: "100%",
+                        padding: "8px 12px", border: "none",
+                        background: "var(--bg-secondary)", borderRadius: 10,
+                        color: "var(--text-primary)", cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 13, fontWeight: 600, textAlign: "left",
+                        marginBottom: isExpanded ? 10 : 0,
+                        transition: "background 0.1s",
+                      }}
+                        onMouseEnter={e => e.currentTarget.style.background = "var(--bg-hover)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "var(--bg-secondary)"}
+                      >
+                        <div style={{
+                          width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                          background: `color-mix(in srgb, ${secColor} 12%, transparent)`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          color: secColor,
+                        }}>
+                          <FolderTree size={14} />
+                        </div>
+                        <span style={{ flex: 1 }}>{section.label}</span>
+                        <span style={{
+                          fontSize: 11, fontWeight: 600, color: "var(--text-muted)",
+                          background: "var(--bg-card)", border: "1px solid var(--border)",
+                          padding: "1px 8px", borderRadius: 5,
+                        }}>
+                          {filtered.length}
+                        </span>
+                        <span style={{ color: "var(--text-muted)", display: "flex" }}>
+                          {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        </span>
+                      </button>
+                    );
+                  })()}
 
                   {/* Projects: card grid */}
                   {isExpanded && isProjects && (
@@ -471,18 +465,18 @@ export default function WorkspaceView() {
                         </div>
                       ) : filtered.map(entry => (
                         <ProjectCard key={entry.path} entry={entry} editors={editors}
-                          onOpen={(edId) => openInEditor(entry.path, edId)}
+                          onOpenInApp={() => window.dispatchEvent(new CustomEvent("vec:open-editor", { detail: { path: entry.path, name: entry.name } }))}
+                          onOpenExternal={(edId) => openInEditor(entry.path, edId)}
                           onExpand={() => toggleExpand(entry.path)}
                           expanded={expandedPaths.has(entry.path)}
-                          onSelectFile={setSelectedFile} selectedFile={selectedFile}
-                          onOctoEdit={() => setEditorProject({ path: entry.path, name: entry.name })} />
+                          onSelectFile={setSelectedFile} selectedFile={selectedFile} />
                       ))}
                     </div>
                   )}
 
                   {/* Shared/Agents: tree */}
                   {isExpanded && !isProjects && (
-                    <div style={{ border: "1px solid var(--border)", borderRadius: 10, background: "var(--bg-primary)", overflow: "hidden" }}>
+                    <div style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--bg-card)", overflow: "hidden" }}>
                       {filtered.length === 0 ? (
                         <div style={{ padding: "16px 20px", color: "var(--text-muted)", fontSize: 12, fontStyle: "italic" }}>
                           {searchQuery ? "No matches" : "Empty"}
@@ -625,72 +619,102 @@ function FilePreviewPanel({
 
   const lineNumWidth = lines.length > 0 ? String(lines.length).length * 8 + 16 : 32;
 
+  const fileName = selectedFile.split(/[/\\]/).pop() ?? "";
+  const langLabel = getLanguage(fileName);
+
   return (
     <div style={{
       flex: 1, display: "flex", flexDirection: "column", overflow: "hidden",
-      border: "1px solid var(--border)", borderRadius: 10, background: "var(--bg-primary)",
+      border: "1px solid var(--border)", borderRadius: 14,
+      background: "var(--bg-primary)",
+      boxShadow: "0 2px 16px rgba(0,0,0,0.08)",
     }}>
       {/* Header */}
       <div style={{
-        padding: "10px 16px", borderBottom: "1px solid var(--border)",
-        display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card)",
+        padding: "10px 14px", borderBottom: "1px solid var(--border)",
+        display: "flex", alignItems: "center", gap: 10,
+        background: "var(--bg-card)", borderRadius: "14px 14px 0 0",
       }}>
-        {getFileIcon(selectedFile.split("/").pop() ?? "")}
-        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
-          {selectedFile.split("/").pop()}
-        </span>
-        {filePreview && (
-          <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
-            {getLanguage(selectedFile.split("/").pop() ?? "")} · {formatSize(filePreview.size)}
-            {isTextFile && ` · ${lines.length} lines`}
-          </span>
-        )}
+        {/* File type icon in tinted circle */}
+        <div style={{
+          width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+          background: "var(--bg-secondary)", border: "1px solid var(--border)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "var(--accent)",
+        }}>
+          {getFileIcon(fileName, 15)}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {fileName}
+          </div>
+          {filePreview && (
+            <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>
+              {langLabel}{filePreview.size ? ` · ${formatSize(filePreview.size)}` : ""}
+              {isTextFile && lines.length > 0 ? ` · ${lines.length} lines` : ""}
+            </div>
+          )}
+        </div>
         {/* Search toggle */}
         {isTextFile && (
           <button
             title="Search in file (Ctrl+F)"
             onClick={() => { setShowFileSearch(!showFileSearch); if (!showFileSearch) setTimeout(() => searchInputRef.current?.focus(), 50); }}
             style={{
-              display: "flex", alignItems: "center", gap: 4,
-              padding: "3px 8px", borderRadius: 5, border: "1px solid var(--border)",
+              display: "flex", alignItems: "center", gap: 5,
+              padding: "5px 10px", borderRadius: 7, border: "1px solid var(--border)",
               background: showFileSearch ? "var(--bg-hover)" : "transparent",
               color: showFileSearch ? "var(--text-primary)" : "var(--text-muted)",
-              fontSize: 11, cursor: "pointer", fontFamily: "inherit",
+              fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
             }}
           >
-            <Search size={11} /> Find
+            <Search size={12} /> Find
           </button>
         )}
         <OpenWithDropdown editors={editors} onOpen={(edId) => openInEditor(selectedFile, edId)} triggerSize="sm" />
-        <button onClick={onClose} style={{
-          padding: "3px 8px", borderRadius: 5, border: "1px solid var(--border)",
+        <button onClick={onClose} title="Close" style={{
+          width: 28, height: 28, borderRadius: 7, border: "1px solid var(--border)",
           background: "transparent", color: "var(--text-muted)",
-          fontSize: 11, cursor: "pointer", fontFamily: "inherit",
-        }}>✕</button>
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer", padding: 0, flexShrink: 0,
+          transition: "background 0.1s, color 0.1s",
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = "color-mix(in srgb, var(--red) 12%, transparent)"; e.currentTarget.style.color = "var(--red)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
+        ><X size={13} /></button>
       </div>
 
       {/* Search bar */}
       {showFileSearch && isTextFile && (
         <div style={{
-          padding: "6px 16px", borderBottom: "1px solid var(--border)",
+          padding: "7px 14px", borderBottom: "1px solid var(--border)",
           display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card)",
         }}>
-          <Search size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-          <input
-            ref={searchInputRef}
-            value={fileSearch}
-            onChange={e => { setFileSearch(e.target.value); setFileSearchIdx(0); }}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="Search in file..."
-            style={{
-              flex: 1, padding: "4px 8px", borderRadius: 5,
-              border: "1px solid var(--border)", background: "var(--bg-primary)",
-              color: "var(--text-primary)", fontSize: 12, fontFamily: "inherit",
-              outline: "none", minWidth: 0,
-            }}
-          />
+          <div style={{
+            flex: 1, display: "flex", alignItems: "center", gap: 7,
+            background: "var(--bg-secondary)", border: "1px solid var(--border)",
+            borderRadius: 8, padding: "4px 10px",
+          }}>
+            <Search size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+            <input
+              ref={searchInputRef}
+              value={fileSearch}
+              onChange={e => { setFileSearch(e.target.value); setFileSearchIdx(0); }}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Search in file..."
+              style={{
+                flex: 1, border: "none", background: "transparent",
+                color: "var(--text-primary)", fontSize: 12, fontFamily: "inherit",
+                outline: "none", minWidth: 0,
+              }}
+            />
+          </div>
           {fileSearch && (
-            <span style={{ fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+            <span style={{
+              fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap",
+              background: "var(--bg-secondary)", padding: "3px 8px", borderRadius: 5,
+              border: "1px solid var(--border)",
+            }}>
               {matchingLines.length > 0
                 ? `${(fileSearchIdx % matchingLines.length) + 1} / ${matchingLines.length}`
                 : "No results"}
@@ -700,21 +724,21 @@ function FilePreviewPanel({
             title="Previous (Shift+Enter)"
             disabled={matchingLines.length === 0}
             style={{
-              display: "flex", padding: 3, border: "1px solid var(--border)", borderRadius: 4,
-              background: "transparent", color: "var(--text-muted)", cursor: "pointer",
+              display: "flex", padding: "4px 5px", border: "1px solid var(--border)", borderRadius: 6,
+              background: "var(--bg-secondary)", color: "var(--text-muted)", cursor: "pointer",
               opacity: matchingLines.length === 0 ? 0.3 : 1,
             }}><ChevronUp size={12} /></button>
           <button onClick={() => setFileSearchIdx((i: number) => i + 1)}
             title="Next (Enter)"
             disabled={matchingLines.length === 0}
             style={{
-              display: "flex", padding: 3, border: "1px solid var(--border)", borderRadius: 4,
-              background: "transparent", color: "var(--text-muted)", cursor: "pointer",
+              display: "flex", padding: "4px 5px", border: "1px solid var(--border)", borderRadius: 6,
+              background: "var(--bg-secondary)", color: "var(--text-muted)", cursor: "pointer",
               opacity: matchingLines.length === 0 ? 0.3 : 1,
             }}><ChevronDown size={12} /></button>
           <button onClick={() => { setShowFileSearch(false); setFileSearch(""); }}
             style={{
-              display: "flex", padding: 3, border: "none", borderRadius: 4,
+              display: "flex", padding: "4px 5px", border: "none", borderRadius: 6,
               background: "transparent", color: "var(--text-muted)", cursor: "pointer",
             }}><X size={12} /></button>
         </div>
@@ -743,56 +767,68 @@ function FilePreviewPanel({
               </div>
             </div>
           ) : isTextFile ? (
-            <div style={{ display: "flex", fontSize: 12, lineHeight: 1.6, fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace" }}>
+            <div style={{ display: "flex", fontSize: 12.5, lineHeight: "1.65", fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace" }}>
               {/* Line numbers gutter */}
               <div style={{
-                width: lineNumWidth, flexShrink: 0, textAlign: "right",
-                padding: "16px 8px 16px 8px", userSelect: "none",
-                color: "var(--text-muted)", opacity: 0.5,
+                width: lineNumWidth + 8, flexShrink: 0, textAlign: "right",
+                padding: "16px 10px 40px 16px", userSelect: "none", fontSize: 11,
+                color: "var(--text-muted)", opacity: 0.4,
                 borderRight: "1px solid var(--border)",
-                background: "color-mix(in srgb, var(--bg-card) 50%, transparent)",
+                background: "color-mix(in srgb, var(--bg-card) 60%, transparent)",
+                letterSpacing: "0.01em",
               }}>
-                {lines.map((_, i) => (
-                  <div key={i} data-line={i} style={{
-                    height: "1.6em",
-                    background: matchingLines.includes(i)
-                      ? matchingLines[fileSearchIdx % matchingLines.length] === i
-                        ? "color-mix(in srgb, var(--orange, #f59e0b) 15%, transparent)"
-                        : "color-mix(in srgb, var(--yellow, #fbbf24) 10%, transparent)"
-                      : "transparent",
-                  }}>
-                    {i + 1}
-                  </div>
-                ))}
+                {lines.map((_, i) => {
+                  const isMatch = matchingLines.includes(i);
+                  const isCurrent = isMatch && matchingLines[fileSearchIdx % matchingLines.length] === i;
+                  return (
+                    <div key={i} data-line={i} style={{
+                      height: "1.65em",
+                      background: isCurrent
+                        ? "color-mix(in srgb, var(--orange, #f59e0b) 18%, transparent)"
+                        : isMatch ? "color-mix(in srgb, var(--yellow, #fbbf24) 10%, transparent)" : "transparent",
+                      color: isCurrent ? "var(--orange, #f59e0b)" : undefined,
+                      fontWeight: isCurrent ? 700 : undefined,
+                    }}>
+                      {i + 1}
+                    </div>
+                  );
+                })}
               </div>
               {/* Code content */}
               <pre style={{
-                margin: 0, padding: "16px 16px 16px 12px", flex: 1, minWidth: 0,
+                margin: 0, padding: "16px 20px 40px 14px", flex: 1, minWidth: 0,
                 color: "var(--text-primary)", whiteSpace: "pre-wrap", wordBreak: "break-word", tabSize: 2,
               }}>
-                {lines.map((line, i) => (
-                  <div key={i} data-line={i} style={{
-                    height: "1.6em",
-                    background: matchingLines.includes(i)
-                      ? matchingLines[fileSearchIdx % matchingLines.length] === i
-                        ? "color-mix(in srgb, var(--orange, #f59e0b) 15%, transparent)"
-                        : "color-mix(in srgb, var(--yellow, #fbbf24) 10%, transparent)"
-                      : "transparent",
-                  }}>
-                    {highlightLine(line, i)}
-                  </div>
-                ))}
+                {lines.map((line, i) => {
+                  const isMatch = matchingLines.includes(i);
+                  const isCurrent = isMatch && matchingLines[fileSearchIdx % matchingLines.length] === i;
+                  return (
+                    <div key={i} data-line={i} style={{
+                      height: "1.65em",
+                      background: isCurrent
+                        ? "color-mix(in srgb, var(--orange, #f59e0b) 10%, transparent)"
+                        : isMatch ? "color-mix(in srgb, var(--yellow, #fbbf24) 7%, transparent)" : "transparent",
+                      borderLeft: isCurrent ? "2px solid var(--orange, #f59e0b)" : "2px solid transparent",
+                      paddingLeft: 4,
+                    }}>
+                      {highlightLine(line, i)}
+                    </div>
+                  );
+                })}
               </pre>
             </div>
           ) : (
             <pre style={{
-              margin: 0, padding: 16, fontSize: 12, lineHeight: 1.6,
+              margin: 0, padding: 20, fontSize: 12.5, lineHeight: 1.65,
               fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
               color: "var(--text-primary)", whiteSpace: "pre-wrap", wordBreak: "break-word", tabSize: 2,
             }}>{filePreview.content}</pre>
           )
         ) : (
-          <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>Select a file to preview</div>
+          <div style={{ padding: 60, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
+            <File size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
+            <div style={{ fontWeight: 500 }}>Select a file to preview</div>
+          </div>
         )}
       </div>
     </div>
@@ -802,16 +838,16 @@ function FilePreviewPanel({
 // ── Project Card ─────────────────────────────────────────────────────────────
 
 function ProjectCard({
-  entry, editors, onOpen, onExpand, expanded, onSelectFile, selectedFile, onOctoEdit,
+  entry, editors, onOpenInApp, onOpenExternal, onExpand, expanded, onSelectFile, selectedFile,
 }: {
   entry: TreeEntry;
   editors: EditorInfo[];
-  onOpen: (editorId: string) => void;
+  onOpenInApp: () => void;
+  onOpenExternal: (editorId: string) => void;
   onExpand: () => void;
   expanded: boolean;
   onSelectFile: (p: string | null) => void;
   selectedFile: string | null;
-  onOctoEdit: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const color = folderColor(entry.name);
@@ -825,23 +861,16 @@ function ProjectCard({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        border: "1px solid var(--border)", borderRadius: 12,
-        background: "var(--bg-primary)", overflow: "hidden",
-        transition: "border-color 0.15s, box-shadow 0.15s",
-        borderColor: hovered ? color : "var(--border)",
-        boxShadow: hovered ? `0 0 0 1px ${color}22, 0 4px 16px ${color}11` : "none",
+        border: `1px solid ${hovered ? color + "55" : "var(--border)"}`,
+        borderRadius: 14,
+        background: "var(--bg-card)", overflow: "hidden",
+        transition: "border-color 0.18s, box-shadow 0.18s",
+        boxShadow: hovered ? `0 4px 20px ${color}18` : "0 1px 4px rgba(0,0,0,0.04)",
         display: "flex", flexDirection: "column",
       }}
     >
       {/* Card body */}
-      <div style={{ padding: "16px 16px 12px", cursor: "pointer", position: "relative" }} onClick={onExpand}>
-        {/* Open with external editor — overlay, top-right, only on hover */}
-        <div style={{
-          position: "absolute", top: 10, right: 10, zIndex: 2,
-          opacity: hovered ? 1 : 0, transition: "opacity 0.12s",
-        }} onClick={(e) => e.stopPropagation()}>
-          <OpenWithDropdown editors={editors} onOpen={onOpen} triggerSize="sm" />
-        </div>
+      <div style={{ padding: "18px 18px 14px", cursor: "default", position: "relative" }}>
 
         {/* Top row: icon + name */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
@@ -901,20 +930,46 @@ function ProjectCard({
             {git.lastCommit}
           </div>
         )}
-      </div>
 
-      {/* OCTO-EDIT button — always visible */}
-      <div style={{ padding: "0 16px 12px" }} onClick={(e) => e.stopPropagation()}>
-        <button onClick={onOctoEdit} style={{
-          width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-          padding: "7px 0", borderRadius: 8,
-          border: "1px solid var(--accent)", background: hovered ? "var(--accent)" : "var(--accent-subtle, transparent)",
-          color: hovered ? "#fff" : "var(--accent)", fontSize: 12, fontWeight: 600,
-          cursor: "pointer", fontFamily: "inherit",
-          transition: "background 0.15s, color 0.15s",
-        }}>
-          <FileCode size={13} /> Open in OCTO-EDIT
-        </button>
+        {/* Action bar */}
+        <div style={{ display: "flex", gap: 6, marginTop: 14 }} onClick={e => e.stopPropagation()}>
+          <button
+            onClick={onOpenInApp}
+            title="Open in the built-in Monaco editor"
+            style={{
+              flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              padding: "7px 0", borderRadius: 8, border: "none",
+              background: `color-mix(in srgb, ${color} 14%, transparent)`,
+              color, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+              transition: "opacity 0.1s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = "0.8"}
+            onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+          >
+            <FileCode size={13} />
+            Open in Editor
+          </button>
+          <button
+            onClick={onExpand}
+            title="Browse files"
+            style={{
+              width: 34, display: "flex", alignItems: "center", justifyContent: "center",
+              borderRadius: 8, border: "1px solid var(--border)",
+              background: "var(--bg-secondary)", color: "var(--text-muted)",
+              cursor: "pointer", padding: 0, flexShrink: 0,
+              transition: "background 0.1s, color 0.1s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-secondary)"; e.currentTarget.style.color = "var(--text-muted)"; }}
+          >
+            <FolderOpen size={13} />
+          </button>
+          {editors.length > 0 && (
+            <div onClick={e => e.stopPropagation()}>
+              <OpenWithDropdown editors={editors} onOpen={onOpenExternal} triggerSize="sm" />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Expanded file list */}

@@ -85,7 +85,14 @@ function read(): AgentMessage[] {
   ensureFile();
   const text = fs.readFileSync(QUEUE_PATH, "utf-8").trim();
   if (!text) return [];
-  return JSON.parse(text) as AgentMessage[];
+  try {
+    const parsed = JSON.parse(text);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    // File corrupted — reset to empty queue
+    fs.writeFileSync(QUEUE_PATH, "[]", "utf-8");
+    return [];
+  }
 }
 
 function write(data: AgentMessage[]): void {

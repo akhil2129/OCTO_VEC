@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "octo-vec": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "node_modules/tsx/dist/cli.mjs",
+        "src/mcp/octoVecServer.ts"
+      ],
+      "env": {
+        "VEC_API_URL": "http://localhost:3000"
+      }
+    }
+  }
+}

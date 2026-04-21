@@ -12,6 +12,7 @@ import { config } from "../config.js";
 // pi-ai's generated model registry — the single source of truth
 import { MODELS } from "@mariozechner/pi-ai/dist/models.generated.js";
 import { getEnvApiKey } from "@mariozechner/pi-ai/dist/env-api-keys.js";
+import { getOllamaConfig, getCachedOllamaModels, setOllamaBaseUrl, refreshOllamaModels } from "./ollamaConfig.js";
 
 const CONFIG_PATH = join(config.dataDir, "model-config.json");
 const KEYS_PATH = join(config.dataDir, "api-keys.json");
@@ -41,6 +42,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   "vercel-ai-gateway": "Vercel AI Gateway",
   xai: "xAI (Grok)",
   zai: "ZhipuAI (GLM)",
+  ollama: "Ollama",
 };
 
 // Env var hints for display in the UI (matches pi-ai's getEnvApiKey)
@@ -67,6 +69,7 @@ const ENV_KEY_HINTS: Record<string, string> = {
   "vercel-ai-gateway": "AI_GATEWAY_API_KEY",
   xai: "XAI_API_KEY",
   zai: "ZAI_API_KEY",
+  ollama: "OLLAMA_BASE_URL",
 };
 
 // ── Provider icon domains (gstatic colored favicon service) ─────────────────
@@ -94,6 +97,7 @@ const PROVIDER_ICON_DOMAINS: Record<string, string> = {
   "vercel-ai-gateway": "vercel.com",
   xai: "x.ai",
   zai: "zhipuai.cn",
+  ollama: "ollama.com",
 };
 
 // ── Provider detection ───────────────────────────────────────────────────────
@@ -105,12 +109,14 @@ export interface ProviderInfo {
   envKey: string;
   models: string[];
   iconUrl: string;
+  /** "url" for providers configured via a base URL instead of an API key */
+  inputType?: "key" | "url";
 }
 
 /** Build the full provider list dynamically from pi-ai's model registry. */
 export function getProviders(): ProviderInfo[] {
   const providerIds = Object.keys(MODELS as Record<string, Record<string, unknown>>);
-  return providerIds.map((id) => {
+  const providers: ProviderInfo[] = providerIds.map((id) => {
     const modelsMap = (MODELS as Record<string, Record<string, unknown>>)[id] ?? {};
     const modelIds = Object.keys(modelsMap);
     const configured = !!getEnvApiKey(id);
@@ -127,6 +133,20 @@ export function getProviders(): ProviderInfo[] {
       iconUrl,
     };
   });
+
+  // Append Ollama — not in pi-ai's registry, managed separately
+  const ollamaCfg = getOllamaConfig();
+  providers.push({
+    id: "ollama",
+    name: "Ollama",
+    configured: !!ollamaCfg?.baseUrl,
+    envKey: "OLLAMA_BASE_URL",
+    models: getCachedOllamaModels(),
+    iconUrl: `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://ollama.com&size=32`,
+    inputType: "url",
+  });
+
+  return providers;
 }
 
 // ── Config types ─────────────────────────────────────────────────────────────
@@ -235,6 +255,13 @@ export function injectStoredApiKeys(): void {
 
 /** Set (or clear) a provider API key — persists to disk and injects into env. */
 export function setProviderApiKey(providerId: string, apiKey: string): void {
+  // Ollama uses a base URL, not an API key
+  if (providerId === "ollama") {
+    setOllamaBaseUrl(apiKey);
+    // Async refresh of model list — fire and forget
+    refreshOllamaModels().catch(() => {});
+    return;
+  }
   const keys = loadApiKeys();
   const envVar = ENV_KEY_HINTS[providerId];
   if (!envVar) return;

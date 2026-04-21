@@ -14,6 +14,7 @@ import FinanceView from "./views/FinanceView";
 import RemindersView from "./views/RemindersView";
 import SettingsView from "./views/SettingsView";
 import WorkspaceView from "./views/WorkspaceView";
+import EditorView from "./views/EditorView";
 import OnboardingView from "./views/OnboardingView";
 import WelcomeTour, { WelcomeSplash, markTourDone } from "./components/WelcomeTour";
 import { apiUrl, startTokenRefresh, stopTokenRefresh, usePolling } from "./hooks/useApi";
@@ -40,9 +41,9 @@ import ChatToasts from "./components/ChatToasts";
 export default function App() {
   const [activeView, setActiveViewRaw] = useState<View>(() => {
     const saved = localStorage.getItem("active-view");
-    return saved && ["overview","kanban","events","snoop","directory","chat","live","finance","reminders","workspace","settings"].includes(saved)
+    return saved && ["overview","kanban","events","snoop","directory","chat","live","finance","reminders","workspace","editor","settings"].includes(saved)
       ? (saved as View)
-      : "kanban";
+      : "overview";
   });
 
   // Auth state: null = loading, true = authed, false = needs login
@@ -52,12 +53,37 @@ export default function App() {
   // Tour phases
   const [tourPhase, setTourPhase] = useState<"splash" | "walkthrough" | null>(null);
 
-  // Check auth status on mount
+  // Check auth status on mount — auto-login on localhost
   useEffect(() => {
-    fetch("/api/auth/status", { credentials: "include" })
-      .then(r => r.json())
-      .then(data => setAuthed(data.authenticated === true))
-      .catch(() => setAuthed(false));
+    (async () => {
+      try {
+        // 1. Check if already authed (cookie exists). The server silently
+        //    refreshes the access token from the refresh cookie when needed,
+        //    so this survives overnight sessions up to the 7d refresh expiry.
+        const statusRes = await fetch("/api/auth/status", { credentials: "include" });
+        const statusData = await statusRes.json();
+        if (statusData.authenticated) { setAuthed(true); return; }
+
+        // 2. Check if key is in URL (legacy flow)
+        const key = new URLSearchParams(location.search).get("key");
+        if (key) {
+          const loginRes = await fetch("/api/auth/login", {
+            method: "POST", credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key }),
+          });
+          if (loginRes.ok) {
+            // Clean key from URL
+            window.history.replaceState({}, "", location.pathname + location.hash);
+            sessionStorage.setItem("vec-api-key", key);
+            setAuthed(true);
+            return;
+          }
+        }
+
+        setAuthed(false);
+      } catch { setAuthed(false); }
+    })();
   }, []);
 
   // Listen for session expiry from authFetch
@@ -157,6 +183,27 @@ function DashboardShell({ activeView, setActiveView, tourPhase, setTourPhase }: 
 }) {
   const { unreadCount, perAgentUnread, toasts, markAgentRead, dismissToast } = useChatNotifications(activeView);
 
+  // Editor view state: which project to open in the in-app Monaco editor
+  const [editorProject, setEditorProject] = useState<{ path: string; name: string } | null>(() => {
+    try {
+      const raw = sessionStorage.getItem("vec-editor-project");
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  });
+
+  useEffect(() => {
+    function onOpenEditor(e: Event) {
+      const detail = (e as CustomEvent).detail as { path?: string; name?: string } | undefined;
+      if (!detail?.path) return;
+      const proj = { path: detail.path, name: detail.name ?? detail.path.split(/[/\\]/).pop() ?? detail.path };
+      sessionStorage.setItem("vec-editor-project", JSON.stringify(proj));
+      setEditorProject(proj);
+      setActiveView("editor");
+    }
+    window.addEventListener("vec:open-editor", onOpenEditor);
+    return () => window.removeEventListener("vec:open-editor", onOpenEditor);
+  }, [setActiveView]);
+
   // Pending reminders count for badge
   const { data: reminders } = usePolling<{ scheduled_for: string; triggered_at: string | null }[]>("/api/reminders?all=false", 10000);
   const pendingReminders = (reminders ?? []).filter(r => !r.triggered_at).length;
@@ -166,6 +213,12 @@ function DashboardShell({ activeView, setActiveView, tourPhase, setTourPhase }: 
   const approvalCount = (pendingApprovals ?? []).length;
 
   function handleToastClick(agentId: string) {
+    sessionStorage.setItem("chat_selected_agent", agentId);
+    setActiveView("chat");
+    markAgentRead(agentId);
+  }
+
+  function openChat(agentId: string) {
     sessionStorage.setItem("chat_selected_agent", agentId);
     setActiveView("chat");
     markAgentRead(agentId);
@@ -280,6 +333,29 @@ function DashboardShell({ activeView, setActiveView, tourPhase, setTourPhase }: 
         {activeView === "finance" && <FinanceView />}
         {activeView === "reminders" && <RemindersView />}
         {activeView === "workspace" && <WorkspaceView />}
+        {activeView === "editor" && editorProject && (
+          <EditorView
+            projectPath={editorProject.path}
+            projectName={editorProject.name}
+            onBack={() => setActiveView("workspace")}
+          />
+        )}
+        {activeView === "editor" && !editorProject && (
+          <div style={{
+            height: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+            color: "var(--text-muted)", fontSize: 13, gap: 8, flexDirection: "column",
+          }}>
+            <div>No project selected.</div>
+            <button
+              onClick={() => setActiveView("workspace")}
+              style={{
+                padding: "7px 14px", borderRadius: 8, border: "1px solid var(--border)",
+                background: "var(--bg-card)", color: "var(--text-secondary)",
+                fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >Go to Workspace</button>
+          </div>
+        )}
         {activeView === "settings" && <SettingsView />}
       </main>
 

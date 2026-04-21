@@ -7,13 +7,12 @@ import Dropdown from "../components/Dropdown";
 import type { Task, Employee, TaskStatus } from "../types";
 
 const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
-  { status: "todo",        label: "Todo",        color: "var(--text-muted)" },
+  { status: "todo",        label: "To Do",       color: "var(--text-muted)" },
   { status: "in_progress", label: "In Progress", color: "var(--blue)" },
   { status: "completed",   label: "Done",        color: "var(--green)" },
   { status: "failed",      label: "Failed",      color: "var(--red)" },
   { status: "cancelled",   label: "Cancelled",   color: "var(--text-muted)" },
 ];
-
 
 function timeAgo(ts: string): string {
   const m = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
@@ -25,50 +24,68 @@ function timeAgo(ts: string): string {
 
 function TaskCard({ task, employees, streaming }: { task: Task; employees: Employee[]; streaming: boolean }) {
   const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const emp = employees.find((e) => e.agent_key === task.agent_id);
   const agentColor = emp?.color || "var(--text-muted)";
 
   return (
     <div
-      className="vec-card task-card fade-in"
       onClick={() => setOpen((v) => !v)}
-      style={{ padding: "8px 10px", marginBottom: 4 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        padding: "12px 14px",
+        marginBottom: 6,
+        background: hovered ? "var(--bg-hover)" : "var(--bg-card)",
+        borderRadius: 10,
+        border: "1px solid var(--border)",
+        cursor: "pointer",
+        transition: "background 0.12s",
+      }}
     >
       {/* Top: task id + time */}
-      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
-        <span style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "monospace" }}>{task.task_id}</span>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 7 }}>
+        <span style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "monospace", letterSpacing: "0.03em" }}>
+          {task.task_id.slice(0, 8).toUpperCase()}
+        </span>
         <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--text-muted)" }}>{timeAgo(task.updated_at)}</span>
       </div>
 
-      {/* Description — markdown */}
-      <div
-        className={open ? "md-content" : "md-content md-clamp"}
-        style={{ marginBottom: 6 }}
-      >
+      {/* Description */}
+      <div className={open ? "md-content" : "md-content md-clamp"} style={{ marginBottom: 10 }}>
         <Markdown>{task.description}</Markdown>
       </div>
 
-      {/* Expanded result — markdown */}
+      {/* Expanded result */}
       {open && task.result && (
-        <div className="md-content md-result" style={{ marginBottom: 6 }}>
+        <div className="md-content md-result" style={{ marginBottom: 10 }}>
           <Markdown>{task.result}</Markdown>
         </div>
       )}
 
-      {/* Assigned to */}
-      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+      {/* Footer */}
+      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
         <div style={{
-          width: 16, height: 16, borderRadius: 4, background: agentColor, opacity: 0.85,
+          width: 20, height: 20, borderRadius: "50%",
+          background: `color-mix(in srgb, ${agentColor} 15%, transparent)`,
+          border: `1.5px solid color-mix(in srgb, ${agentColor} 30%, transparent)`,
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 8, fontWeight: 700, color: "#fff", flexShrink: 0,
+          fontSize: 9, fontWeight: 700, color: agentColor, flexShrink: 0,
         }}>
           {emp ? emp.name.charAt(0) : task.agent_id.charAt(0).toUpperCase()}
         </div>
-        <span style={{ fontSize: 10.5, color: "var(--text-muted)", fontWeight: 500 }}>
+        <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 500 }}>
           {emp ? emp.name.split(" ")[0] : task.agent_id}
         </span>
         {streaming && task.status === "in_progress" && (
-          <span style={{ fontSize: 9, color: "var(--blue)", fontWeight: 500, marginLeft: "auto" }}>working…</span>
+          <span style={{
+            marginLeft: "auto", fontSize: 9, fontWeight: 600, letterSpacing: "0.04em",
+            padding: "2px 7px", borderRadius: 5,
+            background: "color-mix(in srgb, var(--blue) 10%, transparent)",
+            color: "var(--blue)",
+          }}>
+            working
+          </span>
         )}
       </div>
     </div>
@@ -101,10 +118,6 @@ export default function KanbanView() {
     }),
   ], [agentKeys, emps]);
 
-  // Minimum column height: header (~38px) + padding (12px) + one card (~80px)
-  const hasAnyTasks = filtered.length > 0;
-  const colMinHeight = hasAnyTasks ? 130 : undefined;
-
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Header */}
@@ -114,12 +127,7 @@ export default function KanbanView() {
           <div className="page-subtitle">{all.length} tasks</div>
         </div>
         <div style={{ marginLeft: "auto" }}>
-          <Dropdown
-            value={agentFilter}
-            onChange={setAgentFilter}
-            options={dropdownOptions}
-            placeholder="All agents"
-          />
+          <Dropdown value={agentFilter} onChange={setAgentFilter} options={dropdownOptions} placeholder="All agents" />
         </div>
       </div>
 
@@ -127,7 +135,8 @@ export default function KanbanView() {
       <div style={{
         flex: 1, minHeight: 0,
         overflowX: "auto", overflowY: "hidden",
-        padding: "12px 20px", display: "flex", gap: 10,
+        padding: "0 20px 16px",
+        display: "flex", gap: 10,
         alignItems: "flex-start",
       }}>
         {COLUMNS.map((col) => {
@@ -135,26 +144,44 @@ export default function KanbanView() {
 
           return (
             <div key={col.status} style={{
-              flex: 1, minWidth: 200,
-              minHeight: colMinHeight,
-              maxHeight: "100%",
+              flex: 1, minWidth: 210, maxHeight: "100%",
               display: "flex", flexDirection: "column",
-              background: "var(--bg-secondary)", border: "1px solid var(--border)", borderRadius: 8,
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--border)",
+              borderRadius: 12,
               overflow: "hidden",
             }}>
               {/* Column header */}
-              <div style={{ padding: "10px 12px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: col.color, flexShrink: 0, opacity: 0.8 }} />
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text-primary)", flex: 1 }}>{col.label}</span>
-                <span style={{ fontSize: 10, color: "var(--text-muted)", background: "var(--bg-tertiary)", padding: "1px 5px", borderRadius: 4 }}>
+              <div style={{
+                padding: "10px 14px",
+                borderBottom: "1px solid var(--border)",
+                display: "flex", alignItems: "center", gap: 8,
+                flexShrink: 0,
+              }}>
+                <div style={{
+                  width: 7, height: 7, borderRadius: "50%",
+                  background: col.color, flexShrink: 0,
+                }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", flex: 1 }}>
+                  {col.label}
+                </span>
+                <span style={{
+                  fontSize: 10, fontWeight: 500,
+                  padding: "2px 7px", borderRadius: 5,
+                  background: "var(--bg-tertiary)",
+                  color: "var(--text-muted)",
+                  border: "1px solid var(--border)",
+                }}>
                   {colTasks.length}
                 </span>
               </div>
 
               {/* Cards */}
-              <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", padding: "8px 8px 4px" }}>
+              <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", padding: "10px 10px 6px" }}>
                 {colTasks.length === 0 ? (
-                  <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 11, padding: "20px 0" }}>No tasks</div>
+                  <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 11, padding: "28px 0", opacity: 0.45 }}>
+                    Empty
+                  </div>
                 ) : colTasks.map((task) => (
                   <TaskCard
                     key={task.task_id}

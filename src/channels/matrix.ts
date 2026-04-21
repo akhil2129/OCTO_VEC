@@ -240,7 +240,7 @@ class MatrixChannel implements VECChannel {
   async start(): Promise<void> {
     try {
       await this.client.start();
-      console.log(`  [Matrix] Bot started — room: ${this.roomId}`);
+      console.log(`  Matrix connected`);
     } catch (err) {
       console.error("[Matrix] Failed to start:", (err as Error)?.message ?? err);
     }

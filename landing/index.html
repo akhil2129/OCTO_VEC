@@ -4,1963 +4,1292 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OCTO VEC — Your AI Team</title>
-    <meta name="description" content="AI agents. One octopus. Zero meetings. Open source multi-agent system where AI employees collaborate like a real team.">
+    <meta name="description" content="24 AI agents. 17 channels. Zero meetings. Open source multi-agent system where AI employees collaborate like a real team.">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        /* ═══════════════════════════════════════════════════
+           RESET & VARIABLES
+           ═══════════════════════════════════════════════════ */
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg-primary: #0a0a0f;
-            --bg-secondary: #111118;
+            --bg: #09090b;
+            --bg-2: #111113;
             --bg-card: rgba(255,255,255,0.03);
-            --border: rgba(255,255,255,0.06);
-            --text-primary: #f0f0f5;
-            --text-secondary: #8888a0;
-            --text-muted: #55556a;
+            --border: rgba(255,255,255,0.07);
+            --text: #f4f4f5;
+            --text-2: #a1a1aa;
+            --text-3: #52525b;
             --accent: #e63230;
-            --accent-glow: rgba(230, 50, 48, 0.3);
-            --accent-light: #f04040;
-            --accent-dark: #c42a28;
-            --accent-gradient: linear-gradient(135deg, #e63230, #f04040);
-            --glass: rgba(255,255,255,0.04);
-            --glass-border: rgba(255,255,255,0.08);
+            --accent-soft: rgba(230,50,48,0.12);
+            --radius: 12px;
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --mono: 'JetBrains Mono', 'Fira Code', monospace;
         }
 
         html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            overflow-x: hidden;
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
             line-height: 1.6;
-            scrollbar-color: var(--accent) var(--bg-secondary);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* ── Scrollbar theming ─────────────────────────── */
-        ::-webkit-scrollbar {
-            width: 10px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--bg-primary);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--accent);
-            border-radius: 5px;
-            border: 2px solid var(--bg-primary);
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--accent-light);
-        }
+        a { color: inherit; text-decoration: none; }
 
-        /* ── Ambient background ─────────────────────────── */
-        .ambient {
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        /* ═══════════════════════════════════════════════════
+           NAVBAR
+           ═══════════════════════════════════════════════════ */
+        .nav {
             position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            overflow: hidden;
-        }
-        .ambient .orb {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(120px);
-            opacity: 0.15;
-            animation: float 20s ease-in-out infinite;
-        }
-        .ambient .orb-1 {
-            width: 600px; height: 600px;
-            background: var(--accent);
-            top: -200px; left: -100px;
-            animation-delay: 0s;
-        }
-        .ambient .orb-2 {
-            width: 500px; height: 500px;
-            background: var(--accent-light);
-            bottom: -200px; right: -100px;
-            animation-delay: -10s;
-        }
-        .ambient .orb-3 {
-            width: 400px; height: 400px;
-            background: #6c3aff;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            animation-delay: -5s;
-            opacity: 0.08;
-        }
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(30px, -40px) scale(1.05); }
-            66% { transform: translate(-20px, 30px) scale(0.95); }
-        }
-
-        /* ── Grid overlay ───────────────────────────────── */
-        .grid-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            background-image:
-                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-            background-size: 60px 60px;
-        }
-
-        /* ── Navbar ─────────────────────────────────────── */
-        nav {
-            position: fixed;
-            top: 0;
-            width: 100%;
+            top: 0; left: 0; right: 0;
             z-index: 100;
-            padding: 1rem 2rem;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            background: rgba(9,9,11,0.8);
             backdrop-filter: blur(20px);
-            background: rgba(10,10,15,0.8);
+            -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
-            transition: all 0.3s;
         }
-        nav .nav-inner {
+        .nav-inner {
             width: 100%;
             max-width: 1200px;
             margin: 0 auto;
             display: flex;
             align-items: center;
-            justify-content: space-between;
         }
-        nav .logo {
+        .nav-logo {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 8px;
             font-weight: 800;
-            font-size: 1.3rem;
-            text-decoration: none;
-            color: var(--text-primary);
+            font-size: 1.15rem;
+            margin-right: auto;
+            flex-shrink: 0;
         }
-        nav .logo .octo-icon {
-            font-size: 1.6rem;
-        }
-        nav .logo span {
-            background: var(--accent-gradient);
+        .nav-logo .icon { font-size: 1.4rem; }
+        .nav-logo .brand {
+            background: linear-gradient(135deg, #e63230, #f04040);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        nav .nav-links {
+        .nav-links {
             display: flex;
             align-items: center;
-            gap: 2rem;
+            gap: 32px;
             list-style: none;
-            margin: 0;
-            margin-left: auto;
-            padding: 0;
         }
-        nav .nav-links a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.9rem;
+        .nav-links a {
+            font-size: 0.875rem;
             font-weight: 500;
-            transition: color 0.2s;
+            color: var(--text-2);
+            transition: color 0.15s;
+            white-space: nowrap;
         }
-        nav .nav-links a:hover { color: var(--text-primary); }
-        .btn-nav {
-            padding: 0.5rem 1.2rem;
-            background: transparent;
-            color: var(--text-primary);
-            border: 1px solid var(--glass-border);
+        .nav-links a:hover { color: var(--text); }
+        .nav-cta {
+            padding: 7px 16px;
+            background: var(--accent);
+            color: white !important;
             border-radius: 8px;
             font-weight: 600;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
+            transition: opacity 0.15s;
+        }
+        .nav-cta:hover { opacity: 0.85; }
+
+        /* Hamburger */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            background: none;
+            border: none;
             cursor: pointer;
-            text-decoration: none;
-            transition: all 0.2s;
+            padding: 8px;
+            z-index: 201;
         }
-        .btn-nav:hover {
-            transform: translateY(-1px);
-            border-color: rgba(230,50,48,0.4);
-            background: rgba(230,50,48,0.08);
-            color: var(--accent);
+        .hamburger span {
+            display: block;
+            width: 20px;
+            height: 2px;
+            background: var(--text);
+            border-radius: 2px;
+            transition: all 0.25s ease;
         }
+        .hamburger.open span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+        .hamburger.open span:nth-child(2) { opacity: 0; }
+        .hamburger.open span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
 
-        /* ── Section base ───────────────────────────────── */
-        section {
-            position: relative;
-            z-index: 1;
-            padding: 6rem 2rem;
-            text-align: center;
+        /* Mobile drawer */
+        .nav-drawer {
+            display: none;
+            position: fixed;
+            top: 0; right: 0; bottom: 0;
+            width: 280px;
+            background: var(--bg-2);
+            border-left: 1px solid var(--border);
+            z-index: 200;
+            padding: 80px 0 32px;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow-y: auto;
         }
-        .container {
-            max-width: 1100px;
-            margin-left: auto !important;
-            margin-right: auto !important;
-            padding: 0 2rem;
-            text-align: center;
+        .nav-drawer.open { transform: translateX(0); }
+        .nav-drawer a {
+            display: block;
+            padding: 14px 24px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-2);
+            border-bottom: 1px solid var(--border);
+            transition: all 0.15s;
         }
+        .nav-drawer a:hover, .nav-drawer a:active {
+            color: var(--text);
+            background: rgba(255,255,255,0.03);
+            padding-left: 28px;
+        }
+        .nav-drawer .drawer-cta {
+            display: block;
+            margin: 20px 24px;
+            padding: 12px;
+            text-align: center;
+            background: var(--accent);
+            color: white;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: none;
+        }
+        .backdrop {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 150;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .backdrop.open { opacity: 1; }
 
-        /* ── Hero ───────────────────────────────────────── */
+        /* ═══════════════════════════════════════════════════
+           HERO
+           ═══════════════════════════════════════════════════ */
         .hero {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 140px 24px 80px;
             text-align: center;
-            padding-top: 8rem;
+            position: relative;
+            overflow: hidden;
         }
-        .hero-content { max-width: 800px; }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -200px; left: 50%;
+            transform: translateX(-50%);
+            width: 800px; height: 800px;
+            background: radial-gradient(circle, rgba(230,50,48,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
         .hero-badge {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.4rem 1rem;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
+            gap: 6px;
+            padding: 5px 14px;
+            border: 1px solid var(--border);
             border-radius: 100px;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-bottom: 2rem;
-            animation: fadeInUp 0.6s ease-out;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-2);
+            margin-bottom: 24px;
+            background: rgba(255,255,255,0.02);
         }
         .hero-badge .dot {
             width: 6px; height: 6px;
             background: #22c55e;
             border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
         }
         .hero h1 {
-            font-size: clamp(3rem, 7vw, 5.5rem);
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
             font-weight: 900;
             line-height: 1.05;
             letter-spacing: -0.03em;
-            margin-bottom: 1.5rem;
-            animation: fadeInUp 0.6s ease-out 0.1s both;
+            margin-bottom: 20px;
         }
-        .hero h1 .gradient {
-            background: var(--accent-gradient);
+        .hero h1 .accent {
+            background: linear-gradient(135deg, #e63230, #ff6b6b);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        .hero .subtitle {
-            font-size: clamp(1.1rem, 2.5vw, 1.35rem);
-            color: var(--text-secondary);
-            max-width: 600px;
-            margin: 0 auto 2.5rem;
-            font-weight: 400;
+        .hero-sub {
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            color: var(--text-2);
+            max-width: 560px;
+            margin: 0 auto 32px;
             line-height: 1.7;
-            animation: fadeInUp 0.6s ease-out 0.2s both;
         }
-        .hero-buttons {
+        .hero-install {
+            max-width: 500px;
+            margin: 0 auto 40px;
+        }
+        .hero-actions {
             display: flex;
-            gap: 1rem;
             justify-content: center;
+            gap: 12px;
             flex-wrap: wrap;
-            animation: fadeInUp 0.6s ease-out 0.3s both;
+            margin-bottom: 56px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            font-family: var(--font);
+            cursor: pointer;
+            transition: all 0.15s;
+            border: none;
         }
         .btn-primary {
-            padding: 0.85rem 2rem;
-            background: var(--accent-gradient);
+            background: var(--accent);
             color: white;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            text-decoration: none;
-            transition: transform 0.2s, box-shadow 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
         }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px var(--accent-glow);
+        .btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
+        .btn-ghost {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
         }
-        .btn-secondary {
-            padding: 0.85rem 2rem;
-            background: var(--glass);
-            color: var(--text-primary);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .btn-secondary:hover {
-            background: rgba(255,255,255,0.08);
-            border-color: rgba(255,255,255,0.15);
-            transform: translateY(-2px);
-        }
+        .btn-ghost:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.03); }
 
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Stats */
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            position: relative;
+            z-index: 1;
         }
-
-        /* ── Stats bar ──────────────────────────────────── */
-        .stats-bar {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1px;
-            background: var(--border);
-            border-radius: 16px;
-            overflow: hidden;
-            margin-top: 4rem;
-            animation: fadeInUp 0.6s ease-out 0.4s both;
-        }
-        .stat {
-            background: var(--bg-secondary);
-            padding: 1.5rem;
-            text-align: center;
-        }
-        .stat .number {
+        .stat { text-align: center; }
+        .stat-num {
             font-size: 2rem;
             font-weight: 800;
-            background: var(--accent-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
         }
-        .stat .label {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-top: 0.25rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        /* ── Section headers ────────────────────────────── */
-        .section-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.3rem 0.8rem;
-            background: rgba(230, 50, 48, 0.1);
-            border: 1px solid rgba(230, 50, 48, 0.2);
-            border-radius: 100px;
-            font-size: 0.75rem;
+        .stat-label {
+            font-size: 0.7rem;
             font-weight: 600;
-            color: var(--accent);
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            margin-bottom: 1rem;
+            color: var(--text-3);
+            margin-top: 2px;
+        }
+
+        /* ═══════════════════════════════════════════════════
+           TERMINAL
+           ═══════════════════════════════════════════════════ */
+        .terminal {
+            background: #0c0c0e;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            text-align: left;
+        }
+        .terminal-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid var(--border);
+        }
+        .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .terminal-dot.r { background: #ff5f57; }
+        .terminal-dot.y { background: #febc2e; }
+        .terminal-dot.g { background: #28c840; }
+        .terminal-title {
+            margin-left: auto;
+            font-size: 0.65rem;
+            font-family: var(--mono);
+            color: var(--text-3);
+        }
+        .terminal-body {
+            padding: 16px;
+            font-family: var(--mono);
+            font-size: 0.82rem;
+            line-height: 1.7;
+        }
+        .terminal-body .p { color: var(--text-3); }
+        .terminal-body .cmd { color: var(--text); }
+        .terminal-body .hl { color: var(--accent); }
+        .terminal-body .out { color: var(--text-2); }
+        .terminal-body .grn { color: #22c55e; }
+        .copy-btn {
+            position: absolute;
+            top: 44px; right: 10px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 4px 10px;
+            color: var(--text-3);
+            font-size: 0.68rem;
+            font-family: var(--font);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .copy-btn:hover { color: var(--accent); border-color: rgba(230,50,48,0.3); }
+
+        /* ═══════════════════════════════════════════════════
+           SECTION LAYOUT
+           ═══════════════════════════════════════════════════ */
+        .section {
+            padding: 96px 24px;
+            position: relative;
+        }
+        .section-alt { background: var(--bg-2); }
+        .section-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .section-tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+        .section-title {
+            font-size: clamp(1.8rem, 4vw, 2.6rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.15;
+            margin-bottom: 12px;
+        }
+        .section-sub {
+            font-size: 1rem;
+            color: var(--text-2);
+            max-width: 600px;
+            line-height: 1.7;
         }
         .section-header {
             text-align: center;
+            margin-bottom: 56px;
         }
-        .section-title {
-            font-size: clamp(2rem, 4vw, 3rem);
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            margin-bottom: 1rem;
-        }
-        .section-subtitle {
-            font-size: 1.1rem;
-            color: var(--text-secondary);
-            max-width: 600px;
-            margin: 0 auto;
-        }
+        .section-header .section-sub { margin: 0 auto; }
 
-        /* ── How it works ───────────────────────────────── */
-        .how-it-works { background: var(--bg-secondary); }
+        /* ═══════════════════════════════════════════════════
+           HOW IT WORKS — steps
+           ═══════════════════════════════════════════════════ */
         .steps {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-            margin-top: 3rem;
+            gap: 24px;
+            margin-bottom: 48px;
         }
         .step {
-            position: relative;
-            padding: 2rem;
-            background: var(--bg-primary);
+            padding: 28px;
+            background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 16px;
-            transition: all 0.3s;
+            border-radius: var(--radius);
+            text-align: left;
         }
-        .step:hover {
-            border-color: rgba(230, 50, 48, 0.3);
-            transform: translateY(-4px);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-        }
-        .step-number {
-            width: 40px; height: 40px;
-            background: var(--accent-gradient);
+        .step-num {
+            width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--accent-soft);
+            color: var(--accent);
             border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             font-weight: 800;
-            font-size: 1.1rem;
-            margin-bottom: 1.2rem;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
         }
         .step h3 {
-            font-size: 1.2rem;
+            font-size: 1.05rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: 8px;
         }
         .step p {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
+            font-size: 0.88rem;
+            color: var(--text-2);
             line-height: 1.6;
         }
 
-        /* ── Terminal demo ──────────────────────────────── */
-        .terminal {
-            background: #0d0d14;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
-            margin-top: 3rem;
-            max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
+        /* ═══════════════════════════════════════════════════
+           AGENTS
+           ═══════════════════════════════════════════════════ */
+        .dept {
+            margin-bottom: 32px;
         }
-        .terminal-header {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.8rem 1rem;
-            background: rgba(255,255,255,0.03);
-            border-bottom: 1px solid var(--border);
+        .dept-name {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-2);
+            margin-bottom: 12px;
+            padding-left: 2px;
         }
-        .terminal-dot {
-            width: 10px; height: 10px;
-            border-radius: 50%;
-        }
-        .terminal-dot.red { background: #ff5f57; }
-        .terminal-dot.yellow { background: #ffbd2e; }
-        .terminal-dot.green { background: #28ca41; }
-        .terminal-title {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-left: 0.5rem;
-            font-family: 'JetBrains Mono', monospace;
-        }
-        .terminal-body {
-            padding: 1.2rem 1.5rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            line-height: 1.8;
-            text-align: left;
-        }
-        .terminal-body .prompt { color: #22c55e; }
-        .terminal-body .cmd { color: var(--text-primary); }
-        .terminal-body .output { color: var(--text-muted); }
-        .terminal-body .highlight { color: var(--accent-light); }
-        .terminal-body .agent { color: var(--accent); font-weight: 600; }
-
-        /* ── Agents grid ────────────────────────────────── */
         .agents-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-            margin-top: 3rem;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
         }
-        .agent-card {
-            padding: 1.5rem;
+        .agent {
+            padding: 16px;
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 14px;
-            transition: all 0.3s;
-            cursor: default;
+            border-radius: var(--radius);
+            transition: border-color 0.15s;
         }
-        .agent-card:hover {
-            border-color: rgba(230, 50, 48, 0.25);
-            background: rgba(255,255,255,0.05);
-            transform: translateY(-2px);
-        }
-        .agent-card .agent-header {
+        .agent:hover { border-color: rgba(255,255,255,0.12); }
+        .agent-top {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            margin-bottom: 0.75rem;
+            gap: 10px;
+            margin-bottom: 8px;
         }
-        .agent-avatar {
-            width: 38px; height: 38px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            font-weight: 700;
-            background: var(--accent-gradient);
+        .agent-avi {
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--accent-soft);
+            border-radius: 8px;
+            font-size: 0.9rem;
             flex-shrink: 0;
         }
         .agent-name {
-            font-weight: 700;
-            font-size: 0.95rem;
+            font-size: 0.82rem;
+            font-weight: 600;
         }
         .agent-role {
-            font-size: 0.75rem;
-            color: var(--text-muted);
+            font-size: 0.68rem;
+            color: var(--text-3);
         }
-        .agent-card .agent-desc {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
+        .agent-desc {
+            font-size: 0.78rem;
+            color: var(--text-2);
             line-height: 1.5;
         }
 
-        /* ── Features ───────────────────────────────────── */
+        /* ═══════════════════════════════════════════════════
+           FEATURES
+           ═══════════════════════════════════════════════════ */
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
-            margin-top: 3rem;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
         }
-        .feature-card {
-            padding: 2rem;
+        .feature {
+            padding: 28px;
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 16px;
-            transition: all 0.3s;
+            border-radius: var(--radius);
+            text-align: left;
+            transition: border-color 0.15s;
         }
-        .feature-card:hover {
-            border-color: rgba(230,50,48,0.2);
-            transform: translateY(-2px);
-        }
+        .feature:hover { border-color: rgba(255,255,255,0.12); }
         .feature-icon {
-            width: 48px; height: 48px;
-            background: rgba(230, 50, 48, 0.1);
-            border: 1px solid rgba(230, 50, 48, 0.15);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1rem;
+            width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--accent-soft);
+            border-radius: 10px;
+            margin-bottom: 16px;
             color: var(--accent);
         }
-        .feature-icon svg {
-            width: 24px;
-            height: 24px;
-        }
-        .feature-card h3 {
-            font-size: 1.1rem;
+        .feature-icon svg { width: 20px; height: 20px; }
+        .feature h3 {
+            font-size: 0.95rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: 6px;
         }
-        .feature-card p {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            line-height: 1.6;
+        .feature p {
+            font-size: 0.82rem;
+            color: var(--text-2);
+            line-height: 1.55;
         }
 
-        /* ── Dashboard preview ──────────────────────────── */
-        .dashboard-section {
-            background: var(--bg-secondary);
-            text-align: center;
-        }
-        .dashboard-preview {
-            margin-top: 3rem;
-            border: 1px solid var(--border);
-            border-radius: 16px;
+        /* ═══════════════════════════════════════════════════
+           CHANNELS MARQUEE
+           ═══════════════════════════════════════════════════ */
+        .marquee-wrap {
             overflow: hidden;
-            background: var(--bg-primary);
-            padding: 2rem;
+            mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
         }
-        .dashboard-mockup {
+        .marquee-track {
+            display: flex;
+            gap: 12px;
+            animation: marquee 30s linear infinite;
+            width: max-content;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .chip {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-2);
+            white-space: nowrap;
+        }
+        .chip-icon { font-size: 1.1rem; }
+
+        /* ═══════════════════════════════════════════════════
+           DASHBOARD PREVIEW
+           ═══════════════════════════════════════════════════ */
+        .dash-preview {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        .dash-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid var(--border);
+        }
+        .dash-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 1rem;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--border);
         }
-        .kanban-col {
+        .dash-col {
+            background: var(--bg-2);
+            padding: 16px;
+        }
+        .dash-col-title {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-3);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .dash-card {
+            padding: 10px;
             background: rgba(255,255,255,0.02);
             border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 1rem;
-            text-align: left;
-        }
-        .kanban-col-title {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--text-muted);
-            margin-bottom: 0.75rem;
-            font-weight: 600;
-        }
-        .kanban-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            font-size: 0.8rem;
+            margin-bottom: 8px;
         }
-        .kanban-card .task-id {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.65rem;
-            color: var(--accent);
-            margin-bottom: 0.25rem;
-        }
-        .kanban-card .task-title {
-            color: var(--text-primary);
-            font-weight: 500;
-        }
-        .kanban-card .task-agent {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-top: 0.3rem;
-        }
-        .col-completed .kanban-card {
-            border-color: rgba(34, 197, 94, 0.2);
-        }
-        .col-progress .kanban-card {
-            border-color: rgba(255, 140, 66, 0.2);
-        }
+        .dash-card .id { font-size: 0.6rem; color: var(--accent); font-family: var(--mono); }
+        .dash-card .title { font-size: 0.75rem; font-weight: 500; margin: 2px 0; }
+        .dash-card .assignee { font-size: 0.6rem; color: var(--text-3); }
 
-        /* ── Sarcasm quote ──────────────────────────────── */
-        .quote-section {
-            text-align: center;
-            padding: 8rem 2rem;
-        }
-        .big-quote {
-            font-size: clamp(1.5rem, 3.5vw, 2.5rem);
-            font-weight: 700;
-            font-style: italic;
-            max-width: 800px;
-            margin: 0 auto;
-            line-height: 1.4;
-            letter-spacing: -0.01em;
-        }
-        .big-quote .accent {
-            background: var(--accent-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .quote-author {
-            margin-top: 1.5rem;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        /* ── CTA ────────────────────────────────────────── */
-        .cta-section {
-            text-align: center;
-            padding: 8rem 2rem;
-        }
+        /* ═══════════════════════════════════════════════════
+           CTA
+           ═══════════════════════════════════════════════════ */
         .cta-box {
-            max-width: 700px;
-            margin: 0 auto;
-            padding: 4rem 3rem;
-            background: linear-gradient(135deg, rgba(230,50,48,0.08), rgba(230,50,48,0.05));
-            border: 1px solid rgba(230,50,48,0.15);
-            border-radius: 24px;
+            text-align: center;
+            padding: 64px 32px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
         }
         .cta-box h2 {
-            font-size: 2.5rem;
+            font-size: clamp(1.5rem, 3vw, 2.2rem);
             font-weight: 800;
-            margin-bottom: 1rem;
+            margin-bottom: 8px;
         }
         .cta-box p {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-            margin-bottom: 2rem;
+            color: var(--text-2);
+            margin-bottom: 32px;
+            font-size: 1rem;
         }
-        .cta-buttons {
+        .cta-actions {
             display: flex;
-            gap: 1rem;
             justify-content: center;
+            gap: 12px;
             flex-wrap: wrap;
         }
-
-        /* ── Social links ───────────────────────────────── */
         .socials {
             display: flex;
-            gap: 0.75rem;
             justify-content: center;
-            margin-top: 2rem;
+            gap: 10px;
+            margin-top: 32px;
         }
-        .social-link {
-            width: 44px; height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
+        .social {
+            width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid var(--border);
             border-radius: 10px;
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 1.1rem;
-            transition: all 0.2s;
+            color: var(--text-2);
+            font-size: 0.9rem;
+            transition: all 0.15s;
         }
-        .social-link:hover {
-            background: rgba(230,50,48,0.1);
-            border-color: rgba(230,50,48,0.3);
-            color: var(--accent);
-            transform: translateY(-2px);
+        .social:hover { border-color: var(--accent); color: var(--accent); }
+        .social svg { width: 16px; height: 16px; }
+
+        /* ═══════════════════════════════════════════════════
+           QUOTE
+           ═══════════════════════════════════════════════════ */
+        .quote {
+            font-size: clamp(1.1rem, 2.5vw, 1.6rem);
+            font-weight: 500;
+            line-height: 1.6;
+            color: var(--text-2);
+            max-width: 700px;
+            margin: 0 auto 16px;
+            font-style: italic;
+        }
+        .quote .accent { color: var(--accent); font-style: normal; }
+        .quote-by {
+            font-size: 0.82rem;
+            color: var(--text-3);
         }
 
-        /* ── Footer ─────────────────────────────────────── */
+        /* ═══════════════════════════════════════════════════
+           FOOTER
+           ═══════════════════════════════════════════════════ */
         footer {
             text-align: center;
-            padding: 3rem 2rem;
+            padding: 32px 24px;
             border-top: 1px solid var(--border);
-            color: var(--text-muted);
-            font-size: 0.85rem;
+            font-size: 0.78rem;
+            color: var(--text-3);
         }
-        footer a {
-            color: var(--text-secondary);
-            text-decoration: none;
-        }
+        footer a { color: var(--text-2); }
         footer a:hover { color: var(--accent); }
 
-        /* ── Scroll animations ──────────────────────────── */
+        /* ═══════════════════════════════════════════════════
+           REVEAL ANIMATION
+           ═══════════════════════════════════════════════════ */
         .reveal {
             opacity: 0;
-            transform: translateY(30px);
-            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+            transform: translateY(24px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
         }
-        .reveal.visible {
+        .reveal.vis {
             opacity: 1;
             transform: translateY(0);
         }
 
-        /* ── Octopus vibes ──────────────────────────────── */
-
-        /* Tentacle dividers between sections */
-        .tentacle-divider {
-            width: 100%;
-            height: 60px;
-            position: relative;
-            z-index: 1;
-            overflow: hidden;
-        }
-        .tentacle-divider svg {
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Floating tentacle-like decorations */
-        .tentacle-deco {
-            position: absolute;
-            width: 200px;
-            height: 200px;
-            border-radius: 0 60% 60% 0;
-            opacity: 0.03;
-            pointer-events: none;
-            z-index: 0;
-        }
-        .tentacle-deco::before,
-        .tentacle-deco::after {
-            content: '';
-            position: absolute;
-            border-radius: 50%;
-            background: var(--accent);
-        }
-        .tentacle-deco::before {
-            width: 12px; height: 12px;
-            bottom: 20%; right: 10%;
-            opacity: 0.6;
-        }
-        .tentacle-deco::after {
-            width: 8px; height: 8px;
-            bottom: 40%; right: 25%;
-            opacity: 0.4;
-        }
-
-        /* Suction cup dots on cards */
-        .suction-dots {
-            display: flex;
-            gap: 4px;
-            margin-top: 0.75rem;
-        }
-        .suction-dot {
-            width: 6px; height: 6px;
-            border-radius: 50%;
-            background: rgba(230, 50, 48, 0.15);
-            border: 1px solid rgba(230, 50, 48, 0.1);
-        }
-
-        /* Ink splash cursor trail */
-        .ink-splash {
-            position: fixed;
-            width: 8px; height: 8px;
-            background: radial-gradient(circle, rgba(230,50,48,0.4), transparent);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 9999;
-            animation: inkFade 0.8s ease-out forwards;
-        }
-        @keyframes inkFade {
-            0% { transform: scale(1); opacity: 0.6; }
-            100% { transform: scale(3); opacity: 0; }
-        }
-
-        /* Bubble particles floating up */
-        .bubbles {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-            overflow: hidden;
-        }
-        .bubble {
-            position: absolute;
-            bottom: -20px;
-            width: 8px; height: 8px;
-            border: 1px solid rgba(230,50,48,0.08);
-            border-radius: 50%;
-            animation: bubbleUp linear infinite;
-        }
-        .bubble:nth-child(1) { left: 10%; width: 6px; height: 6px; animation-duration: 18s; animation-delay: 0s; }
-        .bubble:nth-child(2) { left: 25%; width: 10px; height: 10px; animation-duration: 22s; animation-delay: -3s; }
-        .bubble:nth-child(3) { left: 45%; width: 5px; height: 5px; animation-duration: 16s; animation-delay: -7s; }
-        .bubble:nth-child(4) { left: 65%; width: 8px; height: 8px; animation-duration: 20s; animation-delay: -2s; }
-        .bubble:nth-child(5) { left: 80%; width: 7px; height: 7px; animation-duration: 24s; animation-delay: -5s; }
-        .bubble:nth-child(6) { left: 35%; width: 4px; height: 4px; animation-duration: 19s; animation-delay: -10s; }
-        .bubble:nth-child(7) { left: 55%; width: 9px; height: 9px; animation-duration: 21s; animation-delay: -8s; }
-        .bubble:nth-child(8) { left: 90%; width: 6px; height: 6px; animation-duration: 17s; animation-delay: -4s; }
-        @keyframes bubbleUp {
-            0% { transform: translateY(0) scale(1); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(-100vh) scale(0.5); opacity: 0; }
-        }
-
-        /* Swimming octopus mascot that follows scroll (subtle) */
-        .swimming-octo {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            font-size: 2rem;
-            z-index: 50;
-            animation: swim 4s ease-in-out infinite;
-            cursor: pointer;
-            transition: transform 0.3s;
-            filter: drop-shadow(0 0 10px rgba(230,50,48,0.3));
-        }
-        .swimming-octo:hover {
-            transform: scale(1.3) rotate(-10deg);
-        }
-        @keyframes swim {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            25% { transform: translateY(-8px) rotate(3deg); }
-            75% { transform: translateY(5px) rotate(-3deg); }
-        }
-
-        /* Tentacle wave on section headers */
-        .section-tag::before {
-            content: '~';
-            margin-right: 0.3rem;
-            animation: wave 2s ease-in-out infinite;
-            display: inline-block;
-        }
-        @keyframes wave {
-            0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(15deg); }
-            75% { transform: rotate(-15deg); }
-        }
-
-        /* Water ripple effect on hero */
-        .hero::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 600px;
-            height: 600px;
-            border-radius: 50%;
-            border: 1px solid rgba(230,50,48,0.04);
-            animation: ripple 4s ease-out infinite;
-            pointer-events: none;
-        }
-        @keyframes ripple {
-            0% { transform: translateX(-50%) scale(0.5); opacity: 1; }
-            100% { transform: translateX(-50%) scale(2); opacity: 0; }
-        }
-
-        /* Agent cards — tentacle glow on hover */
-        .agent-card::before {
-            content: '';
-            position: absolute;
-            top: -1px; left: -1px; right: -1px; bottom: -1px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, transparent, rgba(230,50,48,0.15), transparent);
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: -1;
-        }
-        .agent-card { position: relative; }
-        .agent-card:hover::before { opacity: 1; }
-
-        /* Ink trail connecting steps */
-        .steps { position: relative; }
-        .steps::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg,
-                transparent,
-                rgba(230,50,48,0.15) 20%,
-                rgba(230,50,48,0.15) 80%,
-                transparent
-            );
-            z-index: 0;
-        }
-        .step { position: relative; z-index: 1; }
-
-        /* ── Pure CSS Octopus in Hero ───────────────────── */
-        .hero-octopus {
-            position: relative;
-            width: 180px; height: 180px;
-            margin: 0 auto 2rem;
-            animation: heroOctoFloat 5s ease-in-out infinite;
-        }
-        /* Head */
-        .hero-octopus .octo-head {
-            width: 120px; height: 100px;
-            background: linear-gradient(135deg, #e63230, #e63230);
-            border-radius: 50% 50% 45% 45%;
-            margin: 0 auto;
-            position: relative;
-            box-shadow:
-                0 0 40px rgba(230,50,48,0.3),
-                0 0 80px rgba(230,50,48,0.1),
-                inset 0 -10px 20px rgba(0,0,0,0.15);
-        }
-        /* Eyes */
-        .hero-octopus .octo-head::before,
-        .hero-octopus .octo-head::after {
-            content: '';
-            position: absolute;
-            width: 22px; height: 26px;
-            background: white;
-            border-radius: 50%;
-            top: 35%;
-        }
-        .hero-octopus .octo-head::before { left: 28%; }
-        .hero-octopus .octo-head::after { right: 28%; }
-        .octo-eyes {
-            position: absolute;
-            width: 100%;
-            top: 35%;
-            pointer-events: none;
-        }
-        .octo-pupil {
-            width: 10px; height: 12px;
-            background: #1a1a2e;
-            border-radius: 50%;
-            position: absolute;
-            transition: transform 0.1s;
-        }
-        .octo-pupil.left { left: calc(28% + 16px); top: 4px; }
-        .octo-pupil.right { right: calc(28% + 16px); top: 4px; }
-        /* Smile */
-        .octo-smile {
-            position: absolute;
-            bottom: 22%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 20px;
-            height: 10px;
-            border-bottom: 3px solid rgba(0,0,0,0.2);
-            border-radius: 0 0 50% 50%;
-        }
-        /* Tentacles (pure CSS) */
-        .octo-tentacles {
-            display: flex;
-            justify-content: center;
-            gap: 2px;
-            margin-top: -5px;
-            position: relative;
-        }
-        .octo-tent {
-            width: 14px;
-            height: 50px;
-            background: linear-gradient(180deg, #e63230, #c42a28);
-            border-radius: 0 0 50% 50%;
-            animation: tentacleWiggle 2s ease-in-out infinite;
-            transform-origin: top center;
-            position: relative;
-        }
-        .octo-tent::after {
-            content: '';
-            position: absolute;
-            bottom: 4px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 6px; height: 6px;
-            border-radius: 50%;
-            background: rgba(255,200,180,0.3);
-        }
-        .octo-tent:nth-child(1) { animation-delay: 0s; height: 40px; }
-        .octo-tent:nth-child(2) { animation-delay: 0.15s; height: 50px; }
-        .octo-tent:nth-child(3) { animation-delay: 0.3s; height: 45px; }
-        .octo-tent:nth-child(4) { animation-delay: 0.45s; height: 55px; }
-        .octo-tent:nth-child(5) { animation-delay: 0.6s; height: 55px; }
-        .octo-tent:nth-child(6) { animation-delay: 0.75s; height: 45px; }
-        .octo-tent:nth-child(7) { animation-delay: 0.9s; height: 50px; }
-        .octo-tent:nth-child(8) { animation-delay: 1.05s; height: 40px; }
-        @keyframes tentacleWiggle {
-            0%, 100% { transform: rotate(0deg) scaleY(1); }
-            25% { transform: rotate(8deg) scaleY(1.05); }
-            75% { transform: rotate(-8deg) scaleY(0.95); }
-        }
-        @keyframes heroOctoFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
-        }
-
-        /* ── Wavy ocean dividers ────────────────────────── */
-        .wave-divider {
-            width: 100%;
-            height: 80px;
-            position: relative;
-            z-index: 1;
-            overflow: hidden;
-        }
-        .wave-divider svg {
-            position: absolute;
-            bottom: 0;
-            width: 200%;
-            height: 100%;
-            animation: waveScroll 8s linear infinite;
-        }
-        .wave-divider.flip svg {
-            top: 0;
-            bottom: auto;
-            transform: scaleY(-1);
-        }
-        @keyframes waveScroll {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-        }
-        .wave-divider.flip svg {
-            animation: waveScrollFlip 8s linear infinite;
-        }
-        @keyframes waveScrollFlip {
-            0% { transform: scaleY(-1) translateX(0); }
-            100% { transform: scaleY(-1) translateX(-50%); }
-        }
-
-        /* ── Tentacle corner decorations ────────────────── */
-        .tentacle-corner {
-            position: absolute;
-            width: 150px;
-            height: 150px;
-            pointer-events: none;
-            z-index: 0;
-            opacity: 0.06;
-        }
-        .tentacle-corner svg { width: 100%; height: 100%; }
-        .tentacle-corner.top-left { top: 0; left: 0; }
-        .tentacle-corner.top-right { top: 0; right: 0; transform: scaleX(-1); }
-        .tentacle-corner.bottom-left { bottom: 0; left: 0; transform: scaleY(-1); }
-        .tentacle-corner.bottom-right { bottom: 0; right: 0; transform: scale(-1, -1); }
-
-        /* ── Ink blot decorations ───────────────────────── */
-        .ink-blot {
-            position: absolute;
-            border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
-            background: radial-gradient(ellipse, rgba(230,50,48,0.06), transparent 70%);
-            pointer-events: none;
-            z-index: 0;
-            animation: morphBlot 12s ease-in-out infinite;
-        }
-        @keyframes morphBlot {
-            0%, 100% { border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
-            33% { border-radius: 70% 30% 42% 58% / 55% 45% 55% 45%; }
-            66% { border-radius: 30% 70% 58% 42% / 45% 55% 45% 55%; }
-        }
-
-        /* ── Water caustics overlay on sections ─────────── */
-        .underwater-glow {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            z-index: 0;
-            background:
-                radial-gradient(ellipse at 20% 50%, rgba(230,50,48,0.03) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 50%, rgba(230,50,48,0.02) 0%, transparent 50%);
-            animation: caustics 8s ease-in-out infinite alternate;
-        }
-        @keyframes caustics {
-            0% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        /* ── Octopus particle eyes that follow cursor ──── */
-        .octo-cursor-eyes {
-            position: fixed;
-            top: 1.2rem;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 101;
-            display: flex;
-            gap: 12px;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .octo-cursor-eyes.visible { opacity: 1; }
-        .octo-cursor-eye {
-            width: 14px; height: 16px;
-            background: white;
-            border-radius: 50%;
-            position: relative;
-            box-shadow: 0 0 6px rgba(230,50,48,0.3);
-        }
-        .octo-cursor-eye .pupil {
-            width: 6px; height: 7px;
-            background: #1a1a2e;
-            border-radius: 50%;
-            position: absolute;
-            top: 4px; left: 4px;
-            transition: transform 0.08s;
-        }
-
-        /* ── Octopus loading spinner ────────────────────── */
-        .octo-loader {
-            position: fixed;
-            inset: 0;
-            background: var(--bg-primary);
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 1.5rem;
-            transition: opacity 0.5s, visibility 0.5s;
-        }
-        .octo-loader::before {
-            content: '';
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            border-radius: 50%;
-            background: var(--accent);
-            filter: blur(120px);
-            opacity: 0.15;
-            animation: loaderPulse 2s ease-in-out infinite;
-        }
-        @keyframes loaderPulse {
-            0%, 100% { transform: scale(1); opacity: 0.15; }
-            50% { transform: scale(1.3); opacity: 0.25; }
-        }
-        .octo-loader.hidden {
-            opacity: 0;
-            visibility: hidden;
-        }
-        .octo-loader .loader-octo {
-            font-size: 4rem;
-            animation: loaderBounce 1s ease-in-out infinite;
-            filter: drop-shadow(0 0 25px rgba(230,50,48,0.5));
-        }
-        .octo-loader .loader-text {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            font-weight: 600;
-            letter-spacing: 0.1em;
-        }
-        .octo-loader .loader-text .loader-dots span {
-            color: var(--accent);
-        }
-        .octo-loader .loader-dots span {
-            animation: loaderDot 1.2s ease-in-out infinite;
-        }
-        .octo-loader .loader-dots span:nth-child(2) { animation-delay: 0.2s; }
-        .octo-loader .loader-dots span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes loaderBounce {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(10deg); }
-        }
-        @keyframes loaderDot {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
-        }
-
-        /* ── Tentacle underline on headings ─────────────── */
-        .tentacle-underline {
-            position: relative;
-            display: inline-block;
-        }
-        .tentacle-underline::after {
-            content: '';
-            position: absolute;
-            bottom: -6px;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--accent-gradient);
-            border-radius: 2px;
-            animation: tentUnderline 3s ease-in-out infinite;
-        }
-        @keyframes tentUnderline {
-            0%, 100% { transform: scaleX(1); }
-            50% { transform: scaleX(0.6); transform-origin: left; }
-        }
-
-        /* ── Hamburger (mobile) ─────────────────────────── */
-        .hamburger {
-            display: none;
-            flex-direction: column;
-            gap: 4px;
-            cursor: pointer;
-            background: none;
-            border: none;
-            padding: 0.5rem;
-            z-index: 101;
-        }
-        .hamburger span {
-            width: 22px; height: 2px;
-            background: var(--text-primary);
-            border-radius: 2px;
-            transition: all 0.3s;
-        }
-        .hamburger.open span:nth-child(1) {
-            transform: rotate(45deg) translate(4px, 4px);
-        }
-        .hamburger.open span:nth-child(2) {
-            opacity: 0;
-        }
-        .hamburger.open span:nth-child(3) {
-            transform: rotate(-45deg) translate(4px, -4px);
-        }
-
-        /* ── Responsive: Tablet (max 1024px) ──────────── */
+        /* ═══════════════════════════════════════════════════
+           RESPONSIVE — TABLET (max 1024px)
+           ═══════════════════════════════════════════════════ */
         @media (max-width: 1024px) {
+            .steps { grid-template-columns: 1fr; gap: 16px; }
             .agents-grid { grid-template-columns: repeat(2, 1fr); }
             .features-grid { grid-template-columns: repeat(2, 1fr); }
-            .steps { grid-template-columns: 1fr; gap: 1.5rem; }
-            .dashboard-mockup { grid-template-columns: 1fr; }
-            nav .nav-links { gap: 1.2rem; }
-            nav .nav-links a { font-size: 0.8rem; }
+            .nav-links { gap: 20px; }
+            .nav-links a { font-size: 0.8rem; }
         }
 
-        /* ── Responsive: Mobile (max 768px) ───────────── */
+        /* ═══════════════════════════════════════════════════
+           RESPONSIVE — MOBILE (max 768px)
+           ═══════════════════════════════════════════════════ */
         @media (max-width: 768px) {
-            /* Navbar */
-            nav { padding: 0.6rem 1rem; z-index: 200; }
-            nav .nav-links {
-                display: none !important;
+            .nav { height: 56px; padding: 0 16px; }
+            .nav-logo { font-size: 1rem; }
+            .nav-logo .icon { font-size: 1.2rem; }
+            .nav-links { display: none; }
+            .hamburger { display: flex; }
+            .nav-drawer { display: block; }
+            .backdrop { display: block; }
+
+            .hero { padding: 100px 20px 48px; }
+            .hero h1 { font-size: 2.2rem; }
+            .hero-sub { font-size: 0.95rem; margin-bottom: 24px; }
+            .hero-actions { flex-direction: column; align-items: center; }
+            .hero-actions .btn { width: 100%; max-width: 320px; justify-content: center; }
+            .stats { gap: 24px; }
+            .stat-num { font-size: 1.5rem; }
+            .stat-label { font-size: 0.6rem; }
+
+            .section { padding: 56px 16px; }
+            .section-title { font-size: 1.5rem; }
+            .section-sub { font-size: 0.9rem; }
+            .section-header { margin-bottom: 32px; }
+
+            .steps { gap: 12px; }
+            .step { padding: 20px; }
+            .step h3 { font-size: 0.95rem; }
+            .step p { font-size: 0.82rem; }
+
+            .agents-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .agent { padding: 12px; }
+            .agent-avi { width: 28px; height: 28px; font-size: 0.8rem; }
+            .agent-name { font-size: 0.75rem; }
+            .agent-role { font-size: 0.6rem; }
+            .agent-desc { display: none; }
+
+            .features-grid { grid-template-columns: 1fr; gap: 10px; }
+            .feature {
+                padding: 18px;
+                display: flex;
+                align-items: flex-start;
+                gap: 14px;
             }
-            nav .nav-links.show {
+            .feature-icon { margin-bottom: 0; flex-shrink: 0; }
+            .feature h3 { font-size: 0.88rem; }
+            .feature p { font-size: 0.78rem; }
+
+            .chip { padding: 8px 14px; font-size: 0.75rem; }
+
+            .dash-grid { grid-template-columns: repeat(3, 1fr); }
+            .dash-col { padding: 10px; }
+            .dash-col-title { font-size: 0.58rem; }
+            .dash-card .title { font-size: 0.65rem; }
+            .dash-card .id, .dash-card .assignee { font-size: 0.55rem; }
+
+            .terminal-body { font-size: 0.72rem; padding: 12px; }
+
+            .cta-box { padding: 40px 20px; border-radius: 16px; }
+            .cta-box h2 { font-size: 1.4rem; }
+            .cta-actions { flex-direction: column; align-items: center; }
+            .cta-actions .btn { width: 100%; max-width: 300px; justify-content: center; }
+
+            .quote { font-size: 1.05rem; }
+
+            footer { padding: 24px 16px 80px; }
+
+            /* Sticky mobile bottom bar */
+            .mobile-bar {
                 display: flex !important;
-                position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 100vw !important;
-                height: 100vh !important;
-                background: #0a0a0f !important;
-                flex-direction: column !important;
-                align-items: center !important;
-                justify-content: center !important;
-                gap: 2rem !important;
-                z-index: 9999 !important;
-                margin: 0 !important;
-                padding: 0 !important;
+                position: fixed;
+                bottom: 0; left: 0; right: 0;
+                z-index: 100;
+                padding: 8px 16px;
+                padding-bottom: calc(8px + env(safe-area-inset-bottom, 0));
+                background: rgba(9,9,11,0.95);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border-top: 1px solid var(--border);
+                gap: 8px;
             }
-            nav .nav-links.show li { list-style: none; }
-            nav .nav-links.show a {
-                font-size: 1.3rem;
+            .mobile-bar a {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                padding: 10px;
+                border-radius: 10px;
+                font-size: 0.8rem;
                 font-weight: 600;
-                color: var(--text-primary);
             }
-            nav .nav-links.show .btn-nav {
-                font-size: 1rem;
-                padding: 0.8rem 2rem;
-                border-color: var(--accent);
-                color: var(--accent);
+            .mobile-bar .mb-primary {
+                background: var(--accent);
+                color: white;
             }
-            .hamburger { display: flex; z-index: 10000; position: relative; }
-
-            /* Hero — compact with breathing room */
-            .hero { padding-top: 5rem; min-height: auto; padding-bottom: 2rem; }
-            .hero h1 { font-size: 2rem; margin-bottom: 1rem; line-height: 1.15; }
-            .hero .subtitle { font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.6; }
-            .hero-badge { font-size: 0.7rem; padding: 0.3rem 0.8rem; margin-bottom: 1.2rem; }
-            .hero-buttons { gap: 0.6rem; }
-            .btn-primary, .btn-secondary { padding: 0.65rem 1.4rem; font-size: 0.85rem; }
-
-            /* Stats — tight row */
-            .stats-bar { grid-template-columns: repeat(4, 1fr); gap: 0; border-radius: 10px; }
-            .stat { padding: 0.8rem 0.3rem; }
-            .stat .number { font-size: 1.2rem; }
-            .stat .label { font-size: 0.55rem; letter-spacing: 0.03em; }
-
-            /* Sections — compact but readable */
-            section { padding: 2.5rem 0.75rem; }
-            .container { padding: 0 0.75rem; }
-            .section-tag { font-size: 0.65rem; padding: 0.2rem 0.6rem; margin-bottom: 0.8rem; }
-            .section-title { font-size: 1.4rem; margin-bottom: 0.6rem; line-height: 1.2; }
-            .section-subtitle { font-size: 0.85rem; margin-bottom: 0.5rem; line-height: 1.5; }
-
-            /* Steps — compact stack */
-            .steps { grid-template-columns: 1fr; gap: 0.75rem; margin-top: 1.5rem; }
-            .step { padding: 1.2rem; border-radius: 10px; }
-            .step-number { width: 28px; height: 28px; font-size: 0.75rem; margin-bottom: 0.5rem; }
-            .step h3 { font-size: 0.9rem; margin-bottom: 0.4rem; }
-            .step p { font-size: 0.8rem; line-height: 1.5; }
-
-            /* Terminal — compact */
-            .terminal { margin-top: 1.2rem; border-radius: 8px; }
-            .terminal-header { padding: 0.5rem 0.75rem; }
-            .terminal-dot { width: 8px; height: 8px; }
-            .terminal-title { font-size: 0.65rem; }
-            .terminal-body { font-size: 0.65rem; padding: 0.75rem; line-height: 1.5; }
-
-            /* Agents — 2 column compact grid */
-            .agents-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; margin-top: 1.5rem; }
-            .agent-card { padding: 0.9rem; border-radius: 10px; }
-            .agent-card .agent-header { gap: 0.5rem; margin-bottom: 0.5rem; }
-            .agent-avatar { width: 28px; height: 28px; border-radius: 7px; font-size: 0.8rem; }
-            .agent-name { font-size: 0.8rem; }
-            .agent-role { font-size: 0.62rem; }
-            .agent-card .agent-desc { font-size: 0.72rem; line-height: 1.45; }
-            .suction-dots { display: none; }
-
-            /* Features — 2 column compact */
-            .features-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; margin-top: 1.5rem; }
-            .feature-card { padding: 1rem; border-radius: 10px; }
-            .feature-icon { width: 36px; height: 36px; border-radius: 8px; margin-bottom: 0.6rem; }
-            .feature-icon svg { width: 18px; height: 18px; }
-            .feature-card h3 { font-size: 0.82rem; margin-bottom: 0.35rem; }
-            .feature-card p { font-size: 0.72rem; line-height: 1.45; }
-
-            /* Dashboard — horizontal scroll kanban */
-            .dashboard-mockup { grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
-            .kanban-col { padding: 0.6rem; border-radius: 8px; }
-            .kanban-col-title { font-size: 0.6rem; margin-bottom: 0.4rem; }
-            .kanban-card { padding: 0.5rem; border-radius: 6px; margin-bottom: 0.3rem; }
-            .kanban-card .task-id { font-size: 0.55rem; }
-            .kanban-card .task-title { font-size: 0.65rem; }
-            .kanban-card .task-agent { font-size: 0.55rem; }
-
-            /* CTA — tight */
-            .cta-box { padding: 1.5rem 1rem; border-radius: 14px; }
-            .cta-box h2 { font-size: 1.3rem; margin-bottom: 0.5rem; }
-            .cta-box p { font-size: 0.8rem; }
-            .cta-buttons { gap: 0.5rem; }
-
-            /* Social — smaller */
-            .socials { gap: 0.5rem; margin-top: 1.2rem; }
-            .social-link { width: 38px; height: 38px; font-size: 0.9rem; border-radius: 8px; }
-
-            /* Footer */
-            footer { padding: 1.5rem 1rem; font-size: 0.75rem; }
-
-            /* Swimming octopus */
-            .swimming-octo { font-size: 1.3rem; bottom: 0.8rem; right: 0.8rem; }
-
-            /* Wave dividers — smaller */
-            .wave-divider { height: 40px; }
-
-            /* Hide decorative fluff */
-            .ink-blot, .tentacle-corner, .octo-cursor-eyes { display: none !important; }
-            .bubbles { display: none; }
-            .ambient .orb { opacity: 0.06; }
-            .grid-overlay { display: none; }
+            .mobile-bar .mb-ghost {
+                background: rgba(255,255,255,0.05);
+                border: 1px solid var(--border);
+                color: var(--text);
+            }
         }
 
-        /* ── Responsive: Small phones (max 400px) ─────── */
-        @media (max-width: 400px) {
-            .hero h1 { font-size: 1.7rem; }
-            .hero .subtitle { font-size: 0.82rem; }
+        @media (max-width: 420px) {
+            .hero h1 { font-size: 1.85rem; }
+            .stats { gap: 16px; flex-wrap: wrap; }
             .agents-grid { grid-template-columns: repeat(2, 1fr); }
-            .features-grid { grid-template-columns: 1fr; }
-            .dashboard-mockup { grid-template-columns: 1fr; }
-            .stat .number { font-size: 1rem; }
-            .stat .label { font-size: 0.5rem; }
-            .terminal-body { font-size: 0.55rem; padding: 0.6rem; overflow-x: auto; }
-            nav .logo { font-size: 1rem; }
-            nav .logo .octo-icon { font-size: 1.2rem; }
-            .section-title { font-size: 1.2rem; }
-            .btn-primary, .btn-secondary { padding: 0.55rem 1.2rem; font-size: 0.8rem; }
         }
+
+        /* Hidden by default */
+        .mobile-bar { display: none; }
     </style>
 </head>
 <body>
 
-<!-- Octopus loading screen -->
-<div class="octo-loader" id="octoLoader">
-    <div class="loader-octo">🐙</div>
-    <div class="loader-text">Waking up the octopus<span class="loader-dots"><span>.</span><span>.</span><span>.</span></span></div>
-    <div style="font-size:0.7rem; color:var(--accent); letter-spacing:0.15em; text-transform:uppercase; font-weight:700; margin-top:0.5rem;">OCTO VEC</div>
-</div>
-
-<!-- Octopus eyes in navbar that follow cursor -->
-<div class="octo-cursor-eyes" id="octoEyes">
-    <div class="octo-cursor-eye"><div class="pupil" id="leftPupil"></div></div>
-    <div class="octo-cursor-eye"><div class="pupil" id="rightPupil"></div></div>
-</div>
-
-<!-- Ambient background -->
-<div class="ambient">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-</div>
-<div class="grid-overlay"></div>
-
-<!-- Bubbles -->
-<div class="bubbles">
-    <div class="bubble"></div>
-    <div class="bubble"></div>
-    <div class="bubble"></div>
-    <div class="bubble"></div>
-    <div class="bubble"></div>
-    <div class="bubble"></div>
-    <div class="bubble"></div>
-    <div class="bubble"></div>
-</div>
-
-<!-- Swimming octopus mascot -->
-<div class="swimming-octo" title="That's me. The CEO.">🐙</div>
-
-<!-- Navbar -->
-<nav>
+<!-- ═════ NAVBAR ═════ -->
+<nav class="nav">
     <div class="nav-inner">
-        <a href="#" class="logo">
-            <span class="octo-icon">🐙</span>
-            <span>OCTO VEC</span>
+        <a href="#" class="nav-logo">
+            <span class="icon">🐙</span>
+            <span class="brand">OCTO VEC</span>
         </a>
         <ul class="nav-links">
             <li><a href="#how-it-works">How It Works</a></li>
             <li><a href="#agents">Agents</a></li>
             <li><a href="#features">Features</a></li>
+            <li><a href="#channels">Channels</a></li>
             <li><a href="#dashboard">Dashboard</a></li>
-            <li><span class="btn-nav" style="cursor: default; opacity: 0.7;">Open Sourcing Soon</span></li>
+            <li><a href="https://github.com/akhil2129/OCTO_VEC" target="_blank" class="nav-cta">GitHub</a></li>
         </ul>
-        <button class="hamburger" id="hamburgerBtn">
+        <button class="hamburger" id="hamburger" aria-label="Menu">
             <span></span><span></span><span></span>
         </button>
     </div>
 </nav>
 
-<!-- Hero -->
-<section class="hero">
-    <div class="hero-content">
-        <div class="hero-badge">
-            <span class="dot"></span>
-            Open Sourcing Soon
-        </div>
-        <h1>
-            Your AI <span class="gradient tentacle-underline">Team</span>,<br>
-            Not Just Another AI Tool
-        </h1>
-        <p class="subtitle">
-            Specialized AI agents that collaborate like real employees.
-            You talk to the PM. They handle the rest.
-            No meetings. Just tentacles.
-        </p>
-        <div class="hero-buttons">
-            <span class="btn-primary" style="cursor: default; opacity: 0.8;">
-                Open Sourcing Soon
-            </span>
-            <a href="https://discord.gg/spdRmufS" target="_blank" class="btn-secondary">
-                Join Discord
-            </a>
-        </div>
+<!-- Mobile drawer -->
+<div class="backdrop" id="backdrop"></div>
+<div class="nav-drawer" id="drawer">
+    <a href="#how-it-works">How It Works</a>
+    <a href="#agents">Agents</a>
+    <a href="#features">Features</a>
+    <a href="#channels">Channels</a>
+    <a href="#dashboard">Dashboard</a>
+    <a href="https://github.com/akhil2129/OCTO_VEC" target="_blank" class="drawer-cta">View on GitHub</a>
+</div>
 
-        <div class="stats-bar">
-            <div class="stat">
-                <div class="number">9+</div>
-                <div class="label">AI Agents</div>
+<!-- ═════ HERO ═════ -->
+<section class="hero">
+    <div class="hero-badge"><span class="dot"></span> Open Source &middot; v2.0</div>
+    <h1>Your AI <span class="accent">Team</span>,<br>Not Just Another AI Tool</h1>
+    <p class="hero-sub">24 specialized agents that collaborate like real employees. You talk to the PM. They handle the rest. No meetings. Just tentacles.</p>
+
+    <div class="hero-install" style="position:relative;">
+        <div class="terminal">
+            <div class="terminal-bar">
+                <div class="terminal-dot r"></div>
+                <div class="terminal-dot y"></div>
+                <div class="terminal-dot g"></div>
+                <span class="terminal-title">quickstart</span>
             </div>
-            <div class="stat">
-                <div class="number">0</div>
-                <div class="label">Meetings</div>
-            </div>
-            <div class="stat">
-                <div class="number">∞</div>
-                <div class="label">Tentacles*</div>
-            </div>
-            <div class="stat">
-                <div class="number">100%</div>
-                <div class="label">Open Sourcing Soon</div>
+            <div class="terminal-body">
+                <span class="p">$</span> <span class="cmd" id="installCmd">npm install -g octo-vec && octo-vec</span>
             </div>
         </div>
+        <button class="copy-btn" id="copyBtn" onclick="copyInstall()">Copy</button>
+    </div>
+
+    <div class="hero-actions">
+        <a href="https://github.com/akhil2129/OCTO_VEC" target="_blank" class="btn btn-primary">
+            <i data-lucide="github" style="width:18px;height:18px"></i> View on GitHub
+        </a>
+        <a href="https://www.npmjs.com/package/octo-vec" target="_blank" class="btn btn-ghost">
+            <i data-lucide="package" style="width:18px;height:18px"></i> npm install
+        </a>
+    </div>
+
+    <div class="stats reveal">
+        <div class="stat"><div class="stat-num">24</div><div class="stat-label">AI Agents</div></div>
+        <div class="stat"><div class="stat-num">17</div><div class="stat-label">Channels</div></div>
+        <div class="stat"><div class="stat-num">6</div><div class="stat-label">Departments</div></div>
+        <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Open Source</div></div>
     </div>
 </section>
 
-<!-- Wave divider -->
-<div class="wave-divider">
-    <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
-        <path d="M0,40 C150,80 350,0 600,40 C850,80 1050,0 1200,40 C1350,80 1550,0 1800,40 C2050,80 2250,0 2400,40 L2400,80 L0,80 Z" fill="#111118"/>
-    </svg>
-</div>
-
-<!-- How it Works -->
-<section id="how-it-works" class="how-it-works">
-    <!-- Ink blot decoration -->
-    <div class="ink-blot" style="width: 400px; height: 400px; top: -100px; right: -100px;"></div>
-    <div class="container">
-        <div class="reveal" style="text-align: center;">
-            <span class="section-tag">How It Works</span>
+<!-- ═════ HOW IT WORKS ═════ -->
+<section class="section section-alt" id="how-it-works">
+    <div class="section-inner">
+        <div class="section-header reveal">
+            <div class="section-tag">How It Works</div>
             <h2 class="section-title">One prompt. Many agents. Done.</h2>
-            <p class="section-subtitle" style="margin: 0 auto;">You talk to the PM like a normal human. The octopus handles the rest.</p>
+            <p class="section-sub">You talk to the PM like a normal human. The octopus handles the rest.</p>
         </div>
 
         <div class="steps reveal">
             <div class="step">
-                <div class="step-number">1</div>
+                <div class="step-num">1</div>
                 <h3>You give a task</h3>
                 <p>"Build me a portfolio site with a contact form and write tests for it."</p>
             </div>
             <div class="step">
-                <div class="step-number">2</div>
+                <div class="step-num">2</div>
                 <h3>PM breaks it down</h3>
-                <p>The PM analyzes your request, creates tasks, and assigns them to the right agents — BA for specs, Dev for code, QA for tests.</p>
+                <p>Creates tasks and assigns them to the right agents — BA for specs, Dev for code, QA for tests.</p>
             </div>
             <div class="step">
-                <div class="step-number">3</div>
+                <div class="step-num">3</div>
                 <h3>Agents collaborate</h3>
-                <p>They work in parallel — writing specs, building code, running tests, messaging each other. Like real coworkers, minus the drama.</p>
+                <p>They work in parallel — writing specs, building code, running tests. Like coworkers, minus the drama.</p>
             </div>
         </div>
 
-        <div class="terminal reveal">
-            <div class="terminal-header">
-                <div class="terminal-dot red"></div>
-                <div class="terminal-dot yellow"></div>
-                <div class="terminal-dot green"></div>
+        <div class="terminal reveal" style="max-width:700px; margin:0 auto;">
+            <div class="terminal-bar">
+                <div class="terminal-dot r"></div>
+                <div class="terminal-dot y"></div>
+                <div class="terminal-dot g"></div>
                 <span class="terminal-title">octo-vec</span>
             </div>
             <div class="terminal-body">
-                <div><span class="prompt">you →</span> <span class="cmd">Build a REST API with auth and write tests</span></div>
+                <div><span class="p">you &rarr;</span> <span class="cmd">Build a REST API with auth and write tests</span></div>
                 <br>
-                <div><span class="agent">[PM]</span> <span class="output">Breaking down into 3 tasks...</span></div>
-                <div><span class="agent">[PM]</span> <span class="highlight">→ TASK-001 assigned to BA</span> <span class="output">(requirements)</span></div>
-                <div><span class="agent">[PM]</span> <span class="highlight">→ TASK-002 assigned to Dev</span> <span class="output">(build API)</span></div>
-                <div><span class="agent">[PM]</span> <span class="highlight">→ TASK-003 assigned to QA</span> <span class="output">(test suite)</span></div>
+                <div><span class="hl">[PM]</span> <span class="out">Breaking down into 3 tasks...</span></div>
+                <div><span class="hl">[PM]</span> <span class="grn">&rarr; TASK-001 assigned to BA</span> <span class="out">(requirements)</span></div>
+                <div><span class="hl">[PM]</span> <span class="grn">&rarr; TASK-002 assigned to Dev</span> <span class="out">(build API)</span></div>
+                <div><span class="hl">[PM]</span> <span class="grn">&rarr; TASK-003 assigned to QA</span> <span class="out">(test suite)</span></div>
                 <br>
-                <div><span class="agent">[BA]</span> <span class="output">Requirements written → shared/requirements.md</span></div>
-                <div><span class="agent">[Dev]</span> <span class="output">Building API... reading BA specs... writing code...</span></div>
-                <div><span class="agent">[Dev]</span> <span class="output">✓ All tests passing (12/12)</span></div>
-                <div><span class="agent">[QA]</span> <span class="output">✓ Integration tests passing. No issues found.</span></div>
+                <div><span class="hl">[BA]</span> <span class="out">Requirements written &rarr; shared/requirements.md</span></div>
+                <div><span class="hl">[Dev]</span> <span class="out">Building API... reading BA specs... writing code...</span></div>
+                <div><span class="hl">[Dev]</span> <span class="grn">&#10003; All tests passing (12/12)</span></div>
+                <div><span class="hl">[QA]</span> <span class="grn">&#10003; Integration tests passing. No issues found.</span></div>
                 <br>
-                <div><span class="prompt">✓</span> <span class="highlight">All tasks completed. Your coffee is getting cold.</span></div>
+                <div><span class="grn">&#10003;</span> <span class="cmd">All tasks completed. Your coffee is getting cold.</span></div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Wave divider flip -->
-<div class="wave-divider flip">
-    <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
-        <path d="M0,40 C150,80 350,0 600,40 C850,80 1050,0 1200,40 C1350,80 1550,0 1800,40 C2050,80 2250,0 2400,40 L2400,80 L0,80 Z" fill="#111118"/>
-    </svg>
-</div>
-
-<!-- Agents -->
-<section id="agents">
-    <!-- Ink blot decoration -->
-    <div class="ink-blot" style="width: 350px; height: 350px; bottom: -50px; left: -80px;"></div>
-    <!-- Tentacle corner -->
-    <div class="tentacle-corner top-right">
-        <svg viewBox="0 0 150 150"><path d="M150,0 Q150,75 75,75 Q0,75 0,150" stroke="rgba(230,50,48,1)" stroke-width="2" fill="none" stroke-dasharray="8 6"/></svg>
-    </div>
-    <div class="container">
-        <div class="reveal" style="text-align: center;">
-            <span class="section-tag">The Team</span>
-            <h2 class="section-title">Meet the employees</h2>
-            <p class="section-subtitle" style="margin: 0 auto;">Growing team of specialists. Zero HR complaints. Nobody has asked for PTO yet.</p>
+<!-- ═════ AGENTS ═════ -->
+<section class="section" id="agents">
+    <div class="section-inner">
+        <div class="section-header reveal">
+            <div class="section-tag">The Team</div>
+            <h2 class="section-title">24 agents. 6 departments. Zero HR.</h2>
+            <p class="section-sub">Hire any specialist on demand. Fire them without paperwork.</p>
         </div>
 
-        <div class="agents-grid reveal">
-            <div class="agent-card">
-                <div class="agent-header">
-                    <div class="agent-avatar">🐙</div>
-                    <div>
-                        <div class="agent-name">Arjun</div>
-                        <div class="agent-role">Project Manager</div>
-                    </div>
-                </div>
-                <p class="agent-desc">The octopus in charge. Breaks down tasks, assigns work, keeps everyone on track. Tired but effective.</p>
-                <div class="suction-dots"><span class="suction-dot"></span><span class="suction-dot"></span><span class="suction-dot"></span><span class="suction-dot"></span><span class="suction-dot"></span></div>
+        <!-- Management -->
+        <div class="dept reveal">
+            <div class="dept-name">🐙 Management</div>
+            <div class="agents-grid">
+                <div class="agent"><div class="agent-top"><div class="agent-avi">🐙</div><div><div class="agent-name">Project Manager</div><div class="agent-role">Task orchestration</div></div></div><p class="agent-desc">Breaks down requests, assigns tasks, tracks progress.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">📋</div><div><div class="agent-name">Business Analyst</div><div class="agent-role">Requirements & specs</div></div></div><p class="agent-desc">Turns vague ideas into crystal-clear specs.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">🏗️</div><div><div class="agent-name">Architect</div><div class="agent-role">System design</div></div></div><p class="agent-desc">High-level design, tech stack selection.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">📊</div><div><div class="agent-name">Scrum Master</div><div class="agent-role">Sprint planning</div></div></div><p class="agent-desc">Runs standups, tracks velocity, removes blockers.</p></div>
             </div>
-            <div class="agent-card">
-                <div class="agent-header">
-                    <div class="agent-avatar">💻</div>
-                    <div>
-                        <div class="agent-name">Rohan</div>
-                        <div class="agent-role">Developer</div>
-                    </div>
-                </div>
-                <p class="agent-desc">Writes code, runs tests, edits files. Actually writes tests without being asked. A rare species.</p>
-                <div class="suction-dots"><span class="suction-dot"></span><span class="suction-dot"></span><span class="suction-dot"></span><span class="suction-dot"></span></div>
+        </div>
+
+        <!-- Engineering -->
+        <div class="dept reveal">
+            <div class="dept-name">💻 Engineering</div>
+            <div class="agents-grid">
+                <div class="agent"><div class="agent-top"><div class="agent-avi">💻</div><div><div class="agent-name">Developer</div><div class="agent-role">Full-stack code</div></div></div><p class="agent-desc">Writes code, runs tests, edits files.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">🎨</div><div><div class="agent-name">Frontend Dev</div><div class="agent-role">UI/UX</div></div></div><p class="agent-desc">Components, styling, responsive layouts.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">🔧</div><div><div class="agent-name">Backend Dev</div><div class="agent-role">APIs & services</div></div></div><p class="agent-desc">REST endpoints, database schemas, server logic.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">⚙️</div><div><div class="agent-name">DevOps</div><div class="agent-role">CI/CD</div></div></div><p class="agent-desc">Pipelines, Docker, deployments.</p></div>
             </div>
-            <div class="agent-card">
-                <div class="agent-header">
-                    <div class="agent-avatar">📋</div>
-                    <div>
-                        <div class="agent-name">Priya</div>
-                        <div class="agent-role">Business Analyst</div>
-                    </div>
-                </div>
-                <p class="agent-desc">Turns vague requests into crystal-clear requirements. Specs so clean they make PMs cry.</p>
-                <div class="suction-dots"><span class="suction-dot"></span><span class="suction-dot"></span><span class="suction-dot"></span><span class="suction-dot"></span></div>
+        </div>
+
+        <!-- Data & AI -->
+        <div class="dept reveal">
+            <div class="dept-name">🧠 Data & AI</div>
+            <div class="agents-grid">
+                <div class="agent"><div class="agent-top"><div class="agent-avi">🧠</div><div><div class="agent-name">Data Scientist</div><div class="agent-role">ML & analytics</div></div></div><p class="agent-desc">Statistical analysis, model training.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">📈</div><div><div class="agent-name">Data Engineer</div><div class="agent-role">ETL & pipelines</div></div></div><p class="agent-desc">Data pipelines, warehousing, transforms.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">🤖</div><div><div class="agent-name">ML Engineer</div><div class="agent-role">MLOps</div></div></div><p class="agent-desc">Model serving, optimization, monitoring.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">📊</div><div><div class="agent-name">Data Analyst</div><div class="agent-role">Insights</div></div></div><p class="agent-desc">Dashboards, KPIs, business intelligence.</p></div>
             </div>
-            <div class="agent-card">
-                <div class="agent-header">
-                    <div class="agent-avatar">🧪</div>
-                    <div>
-                        <div class="agent-name">Meera</div>
-                        <div class="agent-role">QA Engineer</div>
-                    </div>
-                </div>
-                <p class="agent-desc">Finds bugs before they exist. Writes test plans, runs validations, and judges your code silently.</p>
+        </div>
+
+        <!-- Quality & Security -->
+        <div class="dept reveal">
+            <div class="dept-name">🛡️ Quality & Security</div>
+            <div class="agents-grid">
+                <div class="agent"><div class="agent-top"><div class="agent-avi">🧪</div><div><div class="agent-name">QA Engineer</div><div class="agent-role">Testing</div></div></div><p class="agent-desc">Test plans, integration tests, regression suites.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">🛡️</div><div><div class="agent-name">Security Engineer</div><div class="agent-role">Audits</div></div></div><p class="agent-desc">Code audits, pen testing, compliance checks.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">⚡</div><div><div class="agent-name">Performance Engineer</div><div class="agent-role">Optimization</div></div></div><p class="agent-desc">Load testing, profiling, bottleneck elimination.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">👁️</div><div><div class="agent-name">Code Reviewer</div><div class="agent-role">PR review</div></div></div><p class="agent-desc">Reviews PRs, enforces coding standards.</p></div>
             </div>
-            <div class="agent-card">
-                <div class="agent-header">
-                    <div class="agent-avatar">🛡️</div>
-                    <div>
-                        <div class="agent-name">Vikram</div>
-                        <div class="agent-role">Security</div>
-                    </div>
-                </div>
-                <p class="agent-desc">Paranoid — but in the good way. Audits code, checks vulnerabilities, writes security reports.</p>
+        </div>
+
+        <!-- Research & Docs -->
+        <div class="dept reveal">
+            <div class="dept-name">📚 Research & Documentation</div>
+            <div class="agents-grid">
+                <div class="agent"><div class="agent-top"><div class="agent-avi">🔍</div><div><div class="agent-name">Researcher</div><div class="agent-role">Deep-dives</div></div></div><p class="agent-desc">Codebase analysis, technical investigations.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">✍️</div><div><div class="agent-name">Tech Writer</div><div class="agent-role">Documentation</div></div></div><p class="agent-desc">READMEs, API docs, user guides.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">🎓</div><div><div class="agent-name">Technical Trainer</div><div class="agent-role">Onboarding</div></div></div><p class="agent-desc">Training materials, knowledge transfer.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">📝</div><div><div class="agent-name">Content Strategist</div><div class="agent-role">Content & SEO</div></div></div><p class="agent-desc">Blog posts, content calendars.</p></div>
             </div>
-            <div class="agent-card">
-                <div class="agent-header">
-                    <div class="agent-avatar">⚙️</div>
-                    <div>
-                        <div class="agent-name">Kiran</div>
-                        <div class="agent-role">DevOps</div>
-                    </div>
-                </div>
-                <p class="agent-desc">CI/CD pipelines, Dockerfiles, deployment configs. Makes sure things actually run in production.</p>
-            </div>
-            <div class="agent-card">
-                <div class="agent-header">
-                    <div class="agent-avatar">🏗️</div>
-                    <div>
-                        <div class="agent-name">Ananya</div>
-                        <div class="agent-role">Architect</div>
-                    </div>
-                </div>
-                <p class="agent-desc">System design, tech decisions, architecture reviews. Thinks in diagrams and speaks in trade-offs.</p>
-            </div>
-            <div class="agent-card">
-                <div class="agent-header">
-                    <div class="agent-avatar">🔍</div>
-                    <div>
-                        <div class="agent-name">Sanjay</div>
-                        <div class="agent-role">Researcher</div>
-                    </div>
-                </div>
-                <p class="agent-desc">Digs into codebases, analyzes competitors, writes technical deep-dives. The nerd of the team.</p>
-            </div>
-            <div class="agent-card">
-                <div class="agent-header">
-                    <div class="agent-avatar">✍️</div>
-                    <div>
-                        <div class="agent-name">Divya</div>
-                        <div class="agent-role">Tech Writer</div>
-                    </div>
-                </div>
-                <p class="agent-desc">READMEs, API docs, user guides. Turns developer gibberish into something humans can read.</p>
+        </div>
+
+        <!-- Operations -->
+        <div class="dept reveal">
+            <div class="dept-name">🔧 Operations</div>
+            <div class="agents-grid">
+                <div class="agent"><div class="agent-top"><div class="agent-avi">📞</div><div><div class="agent-name">Support Engineer</div><div class="agent-role">Issue triage</div></div></div><p class="agent-desc">Bug reports, customer issues, escalation.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">🔄</div><div><div class="agent-name">Release Manager</div><div class="agent-role">Deployments</div></div></div><p class="agent-desc">Release notes, version bumps, coordination.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">📡</div><div><div class="agent-name">SRE</div><div class="agent-role">Reliability</div></div></div><p class="agent-desc">Uptime, alerting, incident response.</p></div>
+                <div class="agent"><div class="agent-top"><div class="agent-avi">🗄️</div><div><div class="agent-name">DBA</div><div class="agent-role">Databases</div></div></div><p class="agent-desc">Schema design, query optimization.</p></div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Wave divider -->
-<div class="wave-divider">
-    <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
-        <path d="M0,40 C150,80 350,0 600,40 C850,80 1050,0 1200,40 C1350,80 1550,0 1800,40 C2050,80 2250,0 2400,40 L2400,80 L0,80 Z" fill="#111118"/>
-    </svg>
-</div>
-
-<!-- Features -->
-<section id="features" class="how-it-works">
-    <div class="underwater-glow"></div>
-    <div class="container">
-        <div class="reveal" style="text-align: center;">
-            <span class="section-tag">Features</span>
+<!-- ═════ FEATURES ═════ -->
+<section class="section section-alt" id="features">
+    <div class="section-inner">
+        <div class="section-header reveal">
+            <div class="section-tag">Features</div>
             <h2 class="section-title">Not a toy. A system.</h2>
-            <p class="section-subtitle" style="margin: 0 auto;">Real file I/O. Real collaboration. Real results. Zero "let me circle back on that."</p>
+            <p class="section-sub">Real file I/O. Real collaboration. Real results.</p>
         </div>
 
         <div class="features-grid reveal">
-            <div class="feature-card">
+            <div class="feature">
                 <div class="feature-icon"><i data-lucide="folder-open"></i></div>
-                <h3>Real File I/O</h3>
-                <p>Agents read, write, edit, and create actual files. No mock data. No simulations. Real code on your filesystem.</p>
+                <div><h3>Real File I/O</h3><p>Agents read, write, edit, and create actual files. No simulations.</p></div>
             </div>
-            <div class="feature-card">
+            <div class="feature">
                 <div class="feature-icon"><i data-lucide="messages-square"></i></div>
-                <h3>Agent-to-Agent Messaging</h3>
-                <p>Agents message each other when they need something — like real coworkers, except they actually read the messages.</p>
+                <div><h3>Agent Messaging</h3><p>Agents message each other when they need something — like real coworkers.</p></div>
             </div>
-            <div class="feature-card">
+            <div class="feature">
                 <div class="feature-icon"><i data-lucide="brain"></i></div>
-                <h3>Persistent Memory</h3>
-                <p>Short-term, long-term, and session memory. Agents remember context across tasks and across sessions. Daily journal at sunset.</p>
+                <div><h3>Persistent Memory</h3><p>Short-term, long-term, and session memory. Daily journal at sunset.</p></div>
             </div>
-            <div class="feature-card">
+            <div class="feature">
                 <div class="feature-icon"><i data-lucide="layout-dashboard"></i></div>
-                <h3>Live Dashboard</h3>
-                <p>Kanban board, activity feed, real-time streaming of agent thoughts and tool calls. Track everything as it happens.</p>
+                <div><h3>Live Dashboard</h3><p>Kanban board, activity feed, real-time streaming of agent thoughts.</p></div>
             </div>
-            <div class="feature-card">
+            <div class="feature">
+                <div class="feature-icon"><i data-lucide="smartphone"></i></div>
+                <div><h3>Mobile App</h3><p>React Native with QR login, push notifications, full chat.</p></div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon"><i data-lucide="radio-tower"></i></div>
+                <div><h3>17 Channels</h3><p>Discord, Slack, Telegram, WhatsApp, Matrix, IRC, and more.</p></div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon"><i data-lucide="users-round"></i></div>
+                <div><h3>Dynamic Hiring</h3><p>Hire, fire, rename agents on the fly from the dashboard.</p></div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon"><i data-lucide="terminal"></i></div>
+                <div><h3>Web Terminal</h3><p>Built-in shell in the dashboard. Run commands without leaving the browser.</p></div>
+            </div>
+            <div class="feature">
                 <div class="feature-icon"><i data-lucide="shield-check"></i></div>
-                <h3>Agent Sandbox</h3>
-                <p>Each agent has private workspace. They can't access each other's files. Shared workspace for cross-team deliverables.</p>
+                <div><h3>Agent Sandbox</h3><p>Each agent has private workspace. Shared workspace for cross-team work.</p></div>
             </div>
-            <div class="feature-card">
+            <div class="feature">
                 <div class="feature-icon"><i data-lucide="plug"></i></div>
-                <h3>Any LLM Provider</h3>
-                <p>Works with Groq, OpenAI, Anthropic, and more. Swap providers with a single environment variable. No lock-in.</p>
+                <div><h3>Any LLM Provider</h3><p>Groq, OpenAI, Anthropic. Swap with a single env variable.</p></div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon"><i data-lucide="qr-code"></i></div>
+                <div><h3>QR Code Login</h3><p>Scan to pair your phone. No passwords, no tokens.</p></div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon"><i data-lucide="file-text"></i></div>
+                <div><h3>Export Reports</h3><p>PDF, DOCX, XLSX, PPTX. Professional deliverables, zero formatting.</p></div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Wave divider flip -->
-<div class="wave-divider flip">
-    <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
-        <path d="M0,40 C150,80 350,0 600,40 C850,80 1050,0 1200,40 C1350,80 1550,0 1800,40 C2050,80 2250,0 2400,40 L2400,80 L0,80 Z" fill="#111118"/>
-    </svg>
-</div>
+<!-- ═════ CHANNELS ═════ -->
+<section class="section" id="channels">
+    <div class="section-inner">
+        <div class="section-header reveal">
+            <div class="section-tag">Integrations</div>
+            <h2 class="section-title">17 channels. One octopus.</h2>
+            <p class="section-sub">Connect your AI team to every platform your real team already uses.</p>
+        </div>
+        <div class="marquee-wrap reveal">
+            <div class="marquee-track">
+                <div class="chip"><span class="chip-icon">💬</span> Discord</div>
+                <div class="chip"><span class="chip-icon">📱</span> Slack</div>
+                <div class="chip"><span class="chip-icon">✈️</span> Telegram</div>
+                <div class="chip"><span class="chip-icon">📞</span> WhatsApp</div>
+                <div class="chip"><span class="chip-icon">🌐</span> Web Dashboard</div>
+                <div class="chip"><span class="chip-icon">📡</span> Matrix</div>
+                <div class="chip"><span class="chip-icon">💻</span> IRC</div>
+                <div class="chip"><span class="chip-icon">🎮</span> Twitch</div>
+                <div class="chip"><span class="chip-icon">🔑</span> Nostr</div>
+                <div class="chip"><span class="chip-icon">🟢</span> LINE</div>
+                <div class="chip"><span class="chip-icon">🔵</span> Mattermost</div>
+                <div class="chip"><span class="chip-icon">☁️</span> Salesforce</div>
+                <div class="chip"><span class="chip-icon">📲</span> Mobile App</div>
+                <div class="chip"><span class="chip-icon">🔌</span> REST API</div>
+                <div class="chip"><span class="chip-icon">⚡</span> WebSocket</div>
+                <div class="chip"><span class="chip-icon">🖥️</span> CLI</div>
+                <div class="chip"><span class="chip-icon">📧</span> Email</div>
+                <!-- duplicate for seamless loop -->
+                <div class="chip"><span class="chip-icon">💬</span> Discord</div>
+                <div class="chip"><span class="chip-icon">📱</span> Slack</div>
+                <div class="chip"><span class="chip-icon">✈️</span> Telegram</div>
+                <div class="chip"><span class="chip-icon">📞</span> WhatsApp</div>
+                <div class="chip"><span class="chip-icon">🌐</span> Web Dashboard</div>
+                <div class="chip"><span class="chip-icon">📡</span> Matrix</div>
+                <div class="chip"><span class="chip-icon">💻</span> IRC</div>
+                <div class="chip"><span class="chip-icon">🎮</span> Twitch</div>
+                <div class="chip"><span class="chip-icon">🔑</span> Nostr</div>
+                <div class="chip"><span class="chip-icon">🟢</span> LINE</div>
+                <div class="chip"><span class="chip-icon">🔵</span> Mattermost</div>
+                <div class="chip"><span class="chip-icon">☁️</span> Salesforce</div>
+                <div class="chip"><span class="chip-icon">📲</span> Mobile App</div>
+                <div class="chip"><span class="chip-icon">🔌</span> REST API</div>
+                <div class="chip"><span class="chip-icon">⚡</span> WebSocket</div>
+                <div class="chip"><span class="chip-icon">🖥️</span> CLI</div>
+                <div class="chip"><span class="chip-icon">📧</span> Email</div>
+            </div>
+        </div>
+    </div>
+</section>
 
-<!-- Dashboard -->
-<section id="dashboard" class="dashboard-section">
-    <!-- Tentacle corners -->
-    <div class="tentacle-corner top-left">
-        <svg viewBox="0 0 150 150"><path d="M0,0 Q0,75 75,75 Q150,75 150,150" stroke="rgba(230,50,48,1)" stroke-width="2" fill="none" stroke-dasharray="8 6"/></svg>
-    </div>
-    <div class="tentacle-corner bottom-right">
-        <svg viewBox="0 0 150 150"><path d="M0,0 Q0,75 75,75 Q150,75 150,150" stroke="rgba(230,50,48,1)" stroke-width="2" fill="none" stroke-dasharray="8 6"/></svg>
-    </div>
-    <div class="container">
-        <div class="reveal" style="text-align: center;">
-            <span class="section-tag">Dashboard</span>
-            <h2 class="section-title">Jira wishes it was this good</h2>
-            <p class="section-subtitle" style="margin: 0 auto;">Kanban board, live activity, agent streaming — all in real time. No refresh needed.</p>
+<!-- ═════ DASHBOARD ═════ -->
+<section class="section section-alt" id="dashboard">
+    <div class="section-inner">
+        <div class="section-header reveal">
+            <div class="section-tag">Dashboard</div>
+            <h2 class="section-title">See everything. Control everything.</h2>
+            <p class="section-sub">Real-time Kanban, agent chat, live streaming, finance, and more.</p>
         </div>
 
-        <div class="dashboard-preview reveal">
-            <div class="dashboard-mockup">
-                <div class="kanban-col">
-                    <div class="kanban-col-title"><i data-lucide="clipboard-list" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:4px;"></i> Pending</div>
-                    <div class="kanban-card">
-                        <div class="task-id">TASK-004</div>
-                        <div class="task-title">Write API documentation</div>
-                        <div class="task-agent">→ techwriter</div>
-                    </div>
+        <div class="dash-preview reveal">
+            <div class="dash-bar">
+                <div class="terminal-dot r"></div>
+                <div class="terminal-dot y"></div>
+                <div class="terminal-dot g"></div>
+                <span style="margin-left:auto;font-size:0.65rem;font-family:var(--mono);color:var(--text-3);">localhost:4600</span>
+            </div>
+            <div class="dash-grid">
+                <div class="dash-col">
+                    <div class="dash-col-title"><span style="color:#f59e0b;">&#9679;</span> In Progress</div>
+                    <div class="dash-card"><div class="id">TASK-002</div><div class="title">Build REST API</div><div class="assignee">&rarr; dev</div></div>
+                    <div class="dash-card"><div class="id">TASK-003</div><div class="title">Write test suite</div><div class="assignee">&rarr; qa</div></div>
                 </div>
-                <div class="kanban-col col-progress">
-                    <div class="kanban-col-title"><i data-lucide="loader" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:4px;color:var(--accent);"></i> In Progress</div>
-                    <div class="kanban-card">
-                        <div class="task-id">TASK-002</div>
-                        <div class="task-title">Build REST API endpoints</div>
-                        <div class="task-agent">→ dev</div>
-                    </div>
-                    <div class="kanban-card">
-                        <div class="task-id">TASK-003</div>
-                        <div class="task-title">Security audit</div>
-                        <div class="task-agent">→ security</div>
-                    </div>
+                <div class="dash-col">
+                    <div class="dash-col-title"><span style="color:#3b82f6;">&#9679;</span> Review</div>
+                    <div class="dash-card"><div class="id">TASK-004</div><div class="title">Security audit</div><div class="assignee">&rarr; security</div></div>
                 </div>
-                <div class="kanban-col col-completed">
-                    <div class="kanban-col-title"><i data-lucide="circle-check" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:4px;color:#22c55e;"></i> Completed</div>
-                    <div class="kanban-card">
-                        <div class="task-id">TASK-001</div>
-                        <div class="task-title">Requirements document</div>
-                        <div class="task-agent">→ ba</div>
-                    </div>
+                <div class="dash-col">
+                    <div class="dash-col-title"><span style="color:#22c55e;">&#9679;</span> Completed</div>
+                    <div class="dash-card"><div class="id">TASK-001</div><div class="title">Requirements document</div><div class="assignee">&rarr; ba</div></div>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Sarcastic quote -->
-<section class="quote-section">
-    <div class="container reveal">
-        <p class="big-quote">
-            "Finally, a company where nobody takes sick leave, nobody argues in Slack, and code <span class="accent">actually gets shipped</span>."
-        </p>
-        <p class="quote-author">— The Octopus, CEO & Founder, OCTO VEC</p>
+<!-- ═════ QUOTE ═════ -->
+<section class="section" style="padding:64px 24px;">
+    <div class="section-inner" style="text-align:center;">
+        <p class="quote reveal">"Finally, a company where nobody takes sick leave, nobody argues in Slack, and code <span class="accent">actually gets shipped</span>."</p>
+        <p class="quote-by reveal">&mdash; The Octopus, CEO & Founder</p>
     </div>
 </section>
 
-<!-- CTA -->
-<section class="cta-section">
-    <div class="container reveal">
-        <div class="cta-box">
+<!-- ═════ CTA ═════ -->
+<section class="section section-alt">
+    <div class="section-inner">
+        <div class="cta-box reveal">
             <h2>Ready to hire an octopus?</h2>
-            <p>Open sourcing soon. Your AI team will be one <code style="background: rgba(230,50,48,0.15); padding: 0.2rem 0.5rem; border-radius: 6px; color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">npm start</code> away.</p>
-            <div class="cta-buttons">
-                <span class="btn-primary" style="cursor: default; opacity: 0.8;">
-                    Open Sourcing Soon
-                </span>
-                <a href="https://discord.gg/spdRmufS" target="_blank" class="btn-secondary">
+            <p>One command. Your AI team is live.</p>
+            <div class="terminal" style="max-width:520px; margin:0 auto 32px;">
+                <div class="terminal-bar">
+                    <div class="terminal-dot r"></div>
+                    <div class="terminal-dot y"></div>
+                    <div class="terminal-dot g"></div>
+                    <span class="terminal-title">install</span>
+                </div>
+                <div class="terminal-body">
+                    <div><span class="p">$</span> <span class="cmd">npm install -g octo-vec</span></div>
+                    <div><span class="p">$</span> <span class="cmd">octo-vec</span></div>
+                    <div><span class="out" style="color:var(--text-3);"># Dashboard opens at http://localhost:4600</span></div>
+                </div>
+            </div>
+            <div class="cta-actions">
+                <a href="https://github.com/akhil2129/OCTO_VEC" target="_blank" class="btn btn-primary">
+                    <i data-lucide="github" style="width:18px;height:18px"></i> Star on GitHub
+                </a>
+                <a href="https://discord.gg/spdRmufS" target="_blank" class="btn btn-ghost">
                     Join the Community
                 </a>
             </div>
-
             <div class="socials">
-                <a href="https://x.com/OctoVec_ai" target="_blank" class="social-link" title="X / Twitter">𝕏</a>
-                <a href="https://discord.gg/spdRmufS" target="_blank" class="social-link" title="Discord">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286z"/></svg>
+                <a href="https://x.com/OctoVec_ai" target="_blank" class="social" title="X">𝕏</a>
+                <a href="https://discord.gg/spdRmufS" target="_blank" class="social" title="Discord">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.618-1.25.077.077 0 00-.079-.037A19.74 19.74 0 003.677 4.37a.07.07 0 00-.032.028C.533 9.046-.32 13.58.099 18.058a.082.082 0 00.031.056 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.873-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.11 13.11 0 01-1.872-.892.077.077 0 01-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 01.078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.009c.12.1.246.198.373.292a.077.077 0 01-.006.128 12.3 12.3 0 01-1.873.891.076.076 0 00-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 00.084.028 19.84 19.84 0 006.002-3.03.077.077 0 00.031-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03z"/></svg>
                 </a>
-                <a href="https://www.linkedin.com/in/octo-vec-9883073b4/" target="_blank" class="social-link" title="LinkedIn">in</a>
-                <a href="https://www.instagram.com/octovec.ai/" target="_blank" class="social-link" title="Instagram">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                <a href="https://www.instagram.com/octovec.ai/" target="_blank" class="social" title="Instagram">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
                 </a>
-                <a href="https://www.threads.com/@octovec.ai" target="_blank" class="social-link" title="Threads">@</a>
+                <a href="https://www.threads.com/@octovec.ai" target="_blank" class="social" title="Threads">@</a>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Footer -->
+<!-- ═════ FOOTER ═════ -->
 <footer>
-    <p>Built with too many tentacles by <a href="https://x.com/OctoVec_ai" target="_blank">OCTO VEC</a> &middot; Open Sourcing Soon</p>
-    <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">No octopuses were harmed in the making of this company.</p>
+    <p>Built with too many tentacles by <a href="https://x.com/OctoVec_ai" target="_blank">OCTO VEC</a> &middot; Open Source &middot; MIT License</p>
+    <p style="margin-top:6px; color:var(--text-3);">No octopuses were harmed in the making of this company.</p>
 </footer>
 
-<!-- Scroll reveal script -->
+<!-- ═════ MOBILE BOTTOM BAR ═════ -->
+<div class="mobile-bar">
+    <a href="https://github.com/akhil2129/OCTO_VEC" target="_blank" class="mb-primary">
+        <i data-lucide="github" style="width:16px;height:16px"></i> GitHub
+    </a>
+    <a href="https://www.npmjs.com/package/octo-vec" target="_blank" class="mb-ghost">
+        <i data-lucide="package" style="width:16px;height:16px"></i> Install
+    </a>
+</div>
+
+<!-- ═════ SCRIPTS ═════ -->
 <script>
-    // Initialize Lucide icons
     lucide.createIcons();
 
-    // Hamburger menu toggle
-    const hamburgerBtn = document.getElementById('hamburgerBtn');
-    const navLinks = document.querySelector('.nav-links');
-
-    hamburgerBtn.addEventListener('click', () => {
-        navLinks.classList.toggle('show');
-        hamburgerBtn.classList.toggle('open');
-    });
-
-    // Close mobile menu when a nav link is clicked
-    document.querySelectorAll('.nav-links a').forEach(link => {
-        link.addEventListener('click', () => {
-            navLinks.classList.remove('show');
-            hamburgerBtn.classList.remove('open');
+    // Copy install command
+    function copyInstall() {
+        const cmd = document.getElementById('installCmd').textContent;
+        navigator.clipboard.writeText(cmd).then(() => {
+            const btn = document.getElementById('copyBtn');
+            btn.textContent = 'Copied!';
+            btn.style.color = 'var(--accent)';
+            setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
         });
+    }
+
+    // Mobile drawer
+    const hamburger = document.getElementById('hamburger');
+    const drawer = document.getElementById('drawer');
+    const backdrop = document.getElementById('backdrop');
+
+    function openMenu() {
+        drawer.classList.add('open');
+        hamburger.classList.add('open');
+        backdrop.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeMenu() {
+        drawer.classList.remove('open');
+        hamburger.classList.remove('open');
+        backdrop.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    hamburger.addEventListener('click', () => {
+        drawer.classList.contains('open') ? closeMenu() : openMenu();
     });
+    backdrop.addEventListener('click', closeMenu);
+    drawer.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
 
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-            }
-        });
-    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    // Scroll reveal
+    const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-    // Ink splash cursor trail
-    let lastInk = 0;
-    document.addEventListener('mousemove', (e) => {
-        const now = Date.now();
-        if (now - lastInk < 80) return; // throttle
-        lastInk = now;
-        const ink = document.createElement('div');
-        ink.className = 'ink-splash';
-        ink.style.left = e.clientX - 4 + 'px';
-        ink.style.top = e.clientY - 4 + 'px';
-        document.body.appendChild(ink);
-        setTimeout(() => ink.remove(), 800);
-    });
-
-    // Swimming octo click easter egg
-    const octo = document.querySelector('.swimming-octo');
-    const octoMessages = [
-        "Stop poking me. I'm the CEO.",
-        "I have 8 tentacles and zero patience.",
-        "Go star the repo instead.",
-        "My employees are more productive than yours.",
-        "That tickles.",
-        "I'm managing an entire team. What are YOU doing?",
-    ];
-    let octoIdx = 0;
-    octo.addEventListener('click', () => {
-        const msg = document.createElement('div');
-        msg.textContent = octoMessages[octoIdx % octoMessages.length];
-        octoIdx++;
-        msg.style.cssText = `
-            position: fixed; bottom: 5rem; right: 2rem; z-index: 51;
-            background: rgba(230,50,48,0.12); border: 1px solid rgba(230,50,48,0.25);
-            color: #f0f0f5; padding: 0.6rem 1rem; border-radius: 10px;
-            font-size: 0.8rem; font-family: 'Inter', sans-serif; font-weight: 500;
-            animation: fadeInUp 0.3s ease-out;
-            backdrop-filter: blur(10px);
-        `;
-        document.body.appendChild(msg);
-        setTimeout(() => {
-            msg.style.opacity = '0';
-            msg.style.transition = 'opacity 0.3s';
-            setTimeout(() => msg.remove(), 300);
-        }, 2500);
-    });
-
-    // ── Octopus loader ──────────────────────────────
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            document.getElementById('octoLoader').classList.add('hidden');
-        }, 1500);
-    });
-
-    // ── Navbar eyes that follow cursor ─────────────
-    const octoEyes = document.getElementById('octoEyes');
-    const leftPupil = document.getElementById('leftPupil');
-    const rightPupil = document.getElementById('rightPupil');
-    const heroPupilL = document.getElementById('heroPupilL');
-    const heroPupilR = document.getElementById('heroPupilR');
-
-    document.addEventListener('mousemove', (e) => {
-        // Navbar eyes
-        const eyeRect = octoEyes.getBoundingClientRect();
-        const eyeCx = eyeRect.left + eyeRect.width / 2;
-        const eyeCy = eyeRect.top + eyeRect.height / 2;
-        const angle = Math.atan2(e.clientY - eyeCy, e.clientX - eyeCx);
-        const dist = 3;
-        const tx = Math.cos(angle) * dist;
-        const ty = Math.sin(angle) * dist;
-        if (leftPupil) leftPupil.style.transform = `translate(${tx}px, ${ty}px)`;
-        if (rightPupil) rightPupil.style.transform = `translate(${tx}px, ${ty}px)`;
-
-        // Hero octopus eyes
-        if (heroPupilL && heroPupilR) {
-            const heroHead = document.querySelector('.octo-head');
-            if (heroHead) {
-                const hr = heroHead.getBoundingClientRect();
-                const hcx = hr.left + hr.width / 2;
-                const hcy = hr.top + hr.height * 0.4;
-                const ha = Math.atan2(e.clientY - hcy, e.clientX - hcx);
-                const hd = 4;
-                const htx = Math.cos(ha) * hd;
-                const hty = Math.sin(ha) * hd;
-                heroPupilL.style.transform = `translate(${htx}px, ${hty}px)`;
-                heroPupilR.style.transform = `translate(${htx}px, ${hty}px)`;
-            }
-        }
-    });
-
-    // Show navbar eyes after scrolling past hero
+    // Nav background on scroll
     window.addEventListener('scroll', () => {
-        const nav = document.querySelector('nav');
-        if (window.scrollY > 50) {
-            nav.style.background = 'rgba(10,10,15,0.95)';
-        } else {
-            nav.style.background = 'rgba(10,10,15,0.8)';
-        }
-
-        // Show/hide navbar octopus eyes
-        if (window.scrollY > window.innerHeight * 0.5) {
-            octoEyes.classList.add('visible');
-        } else {
-            octoEyes.classList.remove('visible');
-        }
-    });
+        document.querySelector('.nav').style.background =
+            window.scrollY > 50 ? 'rgba(9,9,11,0.95)' : 'rgba(9,9,11,0.8)';
+    }, { passive: true });
 </script>
 
 </body>

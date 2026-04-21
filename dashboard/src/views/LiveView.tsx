@@ -158,7 +158,8 @@ function AgentTimelineCard({ name, role, items, active, color, agentKey, todos, 
       border: pendingApprovals.length > 0 ? "1px solid var(--orange)" : "1px solid var(--border)",
       borderRadius: 8,
       display: "flex", flexDirection: "column", overflow: "hidden",
-      minHeight: 160, maxHeight: 360,
+      height: items.length === 0 && todos.length === 0 ? "auto" : 320,
+      maxHeight: 320,
       boxShadow: pendingApprovals.length > 0 ? "0 0 8px rgba(245,158,11,0.15)" : "none",
     }}>
       <div style={{
@@ -299,44 +300,43 @@ function AgentTimelineCard({ name, role, items, active, color, agentKey, todos, 
       {/* Todo checklist */}
       {todos.length > 0 && (
         <div style={{
-          padding: "6px 10px", borderBottom: "1px solid var(--border)",
+          borderBottom: "1px solid var(--border)",
           background: "var(--bg-secondary)", flexShrink: 0,
+          maxHeight: 130, display: "flex", flexDirection: "column",
         }}>
-          <div style={{ fontSize: 9, fontWeight: 600, color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5, display: "flex", justifyContent: "space-between" }}>
+          <div style={{ padding: "5px 10px 3px", fontSize: 9, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.5, display: "flex", justifyContent: "space-between", flexShrink: 0 }}>
             <span>{todos.filter(t => t.status === "completed").length}/{todos.length} done</span>
             {taskId && <span style={{ opacity: 0.6 }}>{taskId}</span>}
           </div>
-          {todos.map((t) => (
-            <div key={t.id} style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "1.5px 0",
-              opacity: t.status === "completed" ? 0.5 : 1,
-            }}>
-              <span style={{
-                fontSize: 10, lineHeight: 1, flexShrink: 0,
-                color: t.status === "completed" ? "var(--green)" : t.status === "in_progress" ? color : "var(--text-muted)",
+          <div style={{ overflowY: "auto", padding: "0 10px 5px" }}>
+            {todos.map((t) => (
+              <div key={t.id} style={{
+                display: "flex", alignItems: "center", gap: 6, padding: "1.5px 0",
+                opacity: t.status === "completed" ? 0.5 : 1,
               }}>
-                {t.status === "completed" ? "✓" : t.status === "in_progress" ? "►" : "○"}
-              </span>
-              <span style={{
-                fontSize: 10.5, color: "var(--text-primary)", lineHeight: 1.3,
-                textDecoration: t.status === "completed" ? "line-through" : "none",
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }}>
-                {t.content}
-              </span>
-            </div>
-          ))}
+                <span style={{
+                  fontSize: 10, lineHeight: 1, flexShrink: 0,
+                  color: t.status === "completed" ? "var(--green)" : t.status === "in_progress" ? color : "var(--text-muted)",
+                }}>
+                  {t.status === "completed" ? "✓" : t.status === "in_progress" ? "►" : "○"}
+                </span>
+                <span style={{
+                  fontSize: 10.5, color: "var(--text-primary)", lineHeight: 1.3,
+                  textDecoration: t.status === "completed" ? "line-through" : "none",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {t.content}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
       <div ref={scrollRef} style={{
         flex: 1, overflowY: "auto", padding: "8px 10px 6px",
-        background: "var(--bg-tertiary)",
+        background: "transparent",
       }}>
-        {items.length === 0 && todos.length === 0 ? (
-          <div style={{ color: "var(--text-muted)", fontSize: 11, padding: "12px 0", textAlign: "center" }}>
-            No activity yet
-          </div>
-        ) : items.length === 0 ? null : (
+        {items.length === 0 && todos.length === 0 ? null : items.length === 0 ? null : (
           items.map((entry, i) => (
             <TimelineItem key={entry.id} entry={entry} isLast={i === items.length - 1} color={color} />
           ))

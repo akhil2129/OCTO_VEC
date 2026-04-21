@@ -210,6 +210,21 @@ input[type="range"]::-moz-range-thumb {
 }
 .fade-in { animation: fade-in 0.12s ease-out; }
 
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.97); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 /* ── Nav ─────────────────────────────────────────────────────────────── */
 .nav-item {
   width: 100%;

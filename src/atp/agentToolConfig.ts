@@ -203,6 +203,10 @@ function buildToolDefs(entry: RosterEntry): ToolDef[] {
   }
 
   tools.push(...MEMORY_TOOLS, ...AGENT_MESSAGING_TOOLS, DATE_TOOL, ...WEB_TOOLS);
+
+  // Claude Code bridge — all specialist agents can delegate work to Claude
+  tools.push({ id: "ask_claude", name: "Ask Claude Code", description: "Delegate tasks or questions to Claude Code AI assistant", group: "Utils" });
+
   return tools;
 }
 
@@ -230,6 +234,7 @@ const PM_TOOLS: ToolDef[] = [
   ...MESSAGING_TOOLS,
   DATE_TOOL,
   ...WEB_TOOLS,
+  { id: "ask_claude", name: "Ask Claude Code", description: "Delegate tasks or questions to Claude Code AI assistant", group: "Utils" },
 ];
 
 // ── Full agent catalog — built dynamically from roster.json ──────────────────
